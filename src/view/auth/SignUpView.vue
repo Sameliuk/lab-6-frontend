@@ -56,10 +56,6 @@ try {
         </head>
 
         <body>
-            <header>
-                <a href="/" class="logo">Lotify</a>
-            </header>
-
             <div class="auth-container">
                 <h2>Реєстрація</h2>
 

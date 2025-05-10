@@ -1,133 +1,112 @@
-<script>
-import router from '@/router';
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/userStore';
 
-export default {
-    data() {
-        return {
-            form: {
-                fname: '',
-                password: '',
+const router = useRouter();
+const userStore = useUserStore();
+
+const form = ref({
+    fname: '',
+    password: '',
+});
+const errors = ref([]);
+
+async function login(e) {
+    e.preventDefault();
+
+    localStorage.clear();
+    errors.value = [];
+
+    if (!form.value.fname) {
+        errors.value.push("Ім'я є обов'язковим");
+    }
+    if (!form.value.password) {
+        errors.value.push('Пароль є обов’язковим');
+    }
+    if (errors.value.length > 0) return;
+
+    try {
+        const res = await fetch('http://localhost:3000/users/signIn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json; charset=UTF-8',
             },
-            errors: [],
-        };
-    },
-    methods: {
-        async login(e) {
-            e.preventDefault();
+            body: JSON.stringify(form.value),
+        });
 
-            localStorage.clear();
-
-            this.errors = [];
-
-            if (!this.form.fname) {
-                this.errors.push('Ім’я обов’язкова');
-            }
-            if (!this.form.password) {
-                this.errors.push('Пароль обов’язковий');
-            }
-            if (this.errors.length > 0) {
-                return;
-            }
-
-            const userStore = useUserStore();
-            try {
-                const res = await fetch('http://localhost:3000/users/signIn', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json; charset=UTF-8',
-                    },
-                    body: JSON.stringify({
-                        fname: this.form.fname,
-                        password: this.form.password,
-                    }),
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    localStorage.setItem('user', JSON.stringify(data));
-                    userStore.setUser({
-                        userId: data.user.id,
-                        fname: data.user.fname,
-                        sname: data.user.sname,
-                        lots: data.user.lots,
-                    });
-                    router.push('/users/profile');
-                }
-                if (!res.ok) {
-                    alert('Неправильні дані для входу');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                this.errors.push(
-                    'Виникла помилка. Будь ласка, спробуйте пізніше.'
-                );
-                this.form.fname = '';
-                this.form.password = '';
-            }
-        },
-    },
-};
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('user', JSON.stringify(data));
+            userStore.setUser({
+                userId: data.user.id,
+                fname: data.user.fname,
+                sname: data.user.sname,
+                lots: data.user.lots,
+            });
+            router.push('/users/profile');
+        } else {
+            const errorData = await res.json();
+            errors.value.push(
+                errorData.message || 'Неправильні дані для входу'
+            );
+        }
+    } catch (error) {
+        console.error('Помилка входу:', error);
+        errors.value.push('Помилка сервера. Спробуйте пізніше.');
+    }
+}
 </script>
 
 <template>
-    <!DOCTYPE html>
-    <html lang="uk">
-        <head>
-            <meta charset="UTF-8" />
-            <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1.0"
-            />
-            <title>Увійти | Lotify</title>
-        </head>
+    <div class="auth-container">
+        <h2>Авторизація</h2>
+        <div v-if="errors.length" class="error-message">
+            <ul>
+                <li v-for="(error, index) in errors" :key="index">
+                    {{ error }}
+                </li>
+            </ul>
+        </div>
 
-        <body>
-            <header>
-                <a href="/" class="logo">Lotify</a>
-            </header>
-
-            <div class="auth-container">
-                <h2>Авторизація</h2>
-                <div
-                    id="error-message"
-                    class="error-message"
-                    style="display: none"
-                ></div>
-
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="fname">Ім'я:</label>
-                        <input
-                            type="text"
-                            id="fname"
-                            name="fname"
-                            placeholder="Введіть ім'я"
-                            required
-                        />
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Пароль:</label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="Введіть пароль"
-                            required
-                        />
-                    </div>
-                    <button type="submit" class="btn-primary">Увійти</button>
-                </form>
-
-                <p>
-                    Ще не зареєстровані?
-                    <a href="/users/signUp">Створити акаунт</a>
-                </p>
+        <form @submit="login">
+            <div class="form-group">
+                <label for="fname">Ім'я:</label>
+                <input
+                    v-model="form.fname"
+                    type="text"
+                    id="fname"
+                    name="fname"
+                    placeholder="Введіть ім'я"
+                    required
+                />
             </div>
-        </body>
-    </html>
+            <div class="form-group">
+                <label for="password">Пароль:</label>
+                <input
+                    v-model="form.password"
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Введіть пароль"
+                    required
+                />
+            </div>
+            <button type="submit" class="btn-primary">Увійти</button>
+        </form>
+
+        <p>
+            Ще не зареєстровані?
+            <RouterLink to="/users/signUp">Створити акаунт</RouterLink>
+        </p>
+    </div>
 </template>
 
 <style scoped>
 @import '@/styles/authPage.css';
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
 </style>

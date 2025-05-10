@@ -5,7 +5,7 @@ import SignUpView from '../view/auth/SignUpView.vue';
 import UserProfileView from '../view/UserProfileView.vue';
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHistory(process.env.BASE_URL),
     routes: [
         {
             path: '/',
