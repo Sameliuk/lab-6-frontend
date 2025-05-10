@@ -105,4 +105,6 @@ try {
     </html>
 </template>
 
-<style scoped src="../styles/authPage.css"></style>
+<style scoped>
+@import '@/styles/authPage.css';
+</style>
