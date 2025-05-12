@@ -1,5 +1,3 @@
 <template>
-    <body>
-        jtytejt
-    </body>
+    <body></body>
 </template>
