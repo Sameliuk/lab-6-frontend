@@ -19,6 +19,23 @@ export const useUserStore = defineStore('userStore', {
             this.fname = '';
             this.sname = '';
             this.lots = [];
+            localStorage.removeItem('user');
+        },
+        loadUserFromLocalStorage() {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    const parsedUser = JSON.parse(userData);
+                    if (parsedUser.userId) {
+                        this.setUser(parsedUser);
+                    }
+                } catch (error) {
+                    console.error(
+                        'Помилка завантаження користувача з LocalStorage'
+                    );
+                    this.clearUser();
+                }
+            }
         },
     },
 });
