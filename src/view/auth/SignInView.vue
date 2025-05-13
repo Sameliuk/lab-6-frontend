@@ -6,6 +6,8 @@ import { useUserStore } from '@/stores/userStore';
 const router = useRouter();
 const userStore = useUserStore();
 
+userStore.clearUser();
+
 const form = ref({
     fname: '',
     password: '',
@@ -14,8 +16,7 @@ const errors = ref([]);
 
 async function login(e) {
     e.preventDefault();
-
-    localStorage.clear();
+    localStorage.removeItem('user');
     errors.value = [];
 
     if (!form.value.fname) {
@@ -37,14 +38,13 @@ async function login(e) {
 
         if (res.ok) {
             const data = await res.json();
-            localStorage.setItem('user', JSON.stringify(data));
-            userStore.setUser({
-                userId: data.user.id,
-                fname: data.user.fname,
-                sname: data.user.sname,
-                lots: data.user.lots,
-            });
-            router.push('/users/profile');
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                userStore.setUser(data.user);
+                router.push('/users/profile');
+            } else {
+                errors.value.push('Неправильні дані для входу');
+            }
         } else {
             const errorData = await res.json();
             errors.value.push(

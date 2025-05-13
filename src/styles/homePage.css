@@ -138,3 +138,17 @@ a.logo {
     color: white;
     font-weight: bold;
 }
+
+.logout-btn {
+    margin-left: 10px;
+    background-color: rgb(120, 120, 233);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background-color: #d32f2f;
+}

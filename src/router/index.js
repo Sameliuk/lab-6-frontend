@@ -11,7 +11,6 @@ const router = createRouter({
             path: '/',
             name: 'home',
             component: HomeView,
-            props: (route) => ({ title: route.query.q || '' }),
         },
         {
             path: '/users/signIn',
