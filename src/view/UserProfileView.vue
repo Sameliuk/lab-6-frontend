@@ -99,7 +99,7 @@ const newLot = ref({
   startPrice: null,
   startTime: getTodayDate(),
   endTime: getTomorrowDate(),
-  status: true, 
+  status: true,
   image: ''
 });
 
@@ -114,34 +114,42 @@ function getTomorrowDate() {
   return tomorrow.toISOString().split('T')[0];
 }
 
-const apiBaseUrl = 'http://localhost:3000'; 
+const apiBaseUrl = 'http://localhost:3000';
 
 async function fetchUserLots() {
   isLoadingLots.value = true;
   error.value = null;
   if (!userStore.userId) {
-
     console.warn("UserID from store is not available for fetching lots.");
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
     isLoadingLots.value = false;
-
     return;
   }
   try {
-
-    const response = await fetch(`${apiBaseUrl}/lots`); 
+    const response = await fetch(`${apiBaseUrl}/lots`); // Або додайте параметри пагінації, якщо потрібно, напр. /lots?userId=${userStore.userId}
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів` }));
       throw new Error(errorData.message || `Помилка ${response.status} при завантаженні лотів`);
     }
-    const fetchedLots = await response.json();
-    lots.value = fetchedLots.map(lot => ({
-      ...lot,
-      status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
-    }));
+    const fetchedObject = await response.json(); // Отримуємо об'єкт від сервера
+
+    console.log('Відповідь від /lots (об\'єкт з бекенду):', fetchedObject);
+
+    // Перевіряємо, чи відповідь є об'єктом і чи містить властивість 'data', яка є масивом
+    if (fetchedObject && typeof fetchedObject === 'object' && Array.isArray(fetchedObject.data)) {
+      lots.value = fetchedObject.data.map(lot => ({
+        ...lot,
+        // Перетворюємо статус на boolean, оскільки v-model для select очікує boolean
+        status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
+      }));
+    } else {
+      // Якщо структура відповіді не така, як очікувалося
+      console.error('Отримана відповідь не містить очікуваного масиву лотів у властивості "data":', fetchedObject);
+      throw new Error('Некоректний формат даних лотів від сервера. Очікувався об\'єкт з властивістю "data", що є масивом.');
+    }
   } catch (err) {
     console.error('Помилка завантаження лотів:', err);
-    error.value = err.message;
+    error.value = err.message; // Відображаємо помилку користувачу
   } finally {
     isLoadingLots.value = false;
   }
@@ -161,26 +169,28 @@ function formatDate(dateString) {
 
 async function updateLotStatus(lotToUpdate) {
   error.value = null;
-  const originalStatus = !lotToUpdate.status; 
+  const originalStatus = !lotToUpdate.status; // Зберігаємо поточний статус для можливого відкату
 
   try {
     const response = await fetch(`${apiBaseUrl}/lots/${lotToUpdate.id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newStatus: String(lotToUpdate.status) }) 
+      body: JSON.stringify({ newStatus: String(lotToUpdate.status) }) // Надсилаємо рядок "true" або "false"
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Помилка оновлення статусу' }));
       throw new Error(errorData.message || 'Помилка оновлення статусу');
     }
-
+    // Якщо потрібно оновити дані після успішного запиту, можна викликати fetchUserLots()
+    // або оновити конкретний лот в масиві lots.value локально, якщо сервер повертає оновлений лот
   } catch (err) {
     console.error('Помилка оновлення статусу:', err);
     error.value = err.message;
     alert(err.message);
+    // Відкат зміни статусу в UI у разі помилки
     const lotInArray = lots.value.find(l => l.id === lotToUpdate.id);
     if (lotInArray) {
-      lotInArray.status = originalStatus; 
+      lotInArray.status = originalStatus;
     }
   }
 }
@@ -196,7 +206,7 @@ async function deleteLot(lotId) {
         const errorData = await response.json().catch(() => ({ message: 'Помилка видалення лоту' }));
         throw new Error(errorData.message || 'Помилка видалення лоту');
       }
-      lots.value = lots.value.filter(lot => lot.id !== lotId);
+      lots.value = lots.value.filter(lot => lot.id !== lotId); // Видаляємо лот з UI
     } catch (err) {
       console.error('Помилка видалення лоту:', err);
       error.value = err.message;
@@ -215,20 +225,20 @@ async function handleCreateLot() {
   error.value = null;
 
   const payload = {
-    userId: userStore.userId,
+    userId: userStore.userId, // Переконайтесь, що userStore.userId існує
     title: newLot.value.title,
     description: newLot.value.description,
-    start_price: parseFloat(newLot.value.startPrice), 
-    status: String(newLot.value.status),              
-    start_time: newLot.value.startTime,               
-    end_time: newLot.value.endTime,                   
+    start_price: parseFloat(newLot.value.startPrice),
+    status: String(newLot.value.status), // Надсилаємо рядок "true" або "false"
+    start_time: newLot.value.startTime,
+    end_time: newLot.value.endTime,
     image: newLot.value.image || null
   };
 
   console.log("Дані для створення лоту:", payload);
 
   try {
-    const response = await fetch(`${apiBaseUrl}/lots/create`, {
+    const response = await fetch(`${apiBaseUrl}/lots/create`, { // Перевірте, чи цей ендпоінт правильний
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -236,26 +246,28 @@ async function handleCreateLot() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Помилка створення лоту' }));
-      throw new Error(errorData.error || 'Невідома помилка створення лоту');
+      throw new Error(errorData.message || errorData.error || 'Невідома помилка створення лоту');
     }
 
     const createdLot = await response.json();
-    lots.value.unshift({ 
+    // Додаємо новий лот на початок списку і коректно обробляємо його статус
+    lots.value.unshift({
         ...createdLot,
-        status: String(createdLot.status).toLowerCase() === 'true'
+        status: typeof createdLot.status === 'string' ? createdLot.status.toLowerCase() === 'true' : Boolean(createdLot.status)
     });
+    // Очищаємо форму
     newLot.value = {
       title: '',
       description: '',
       startPrice: null,
       startTime: getTodayDate(),
       endTime: getTomorrowDate(),
-      status: true,
+      status: true, // Повертаємо до значення за замовчуванням
       image: ''
     };
   } catch (err) {
     console.error('Помилка створення лоту:', err);
-    error.value = err.message; 
+    error.value = err.message;
     alert(err.message);
   } finally {
     isCreatingLot.value = false;
@@ -263,21 +275,22 @@ async function handleCreateLot() {
 }
 
 function editLot(lot) {
+  // Тут має бути логіка переходу на сторінку редагування або відкриття модального вікна
+  // Наприклад: router.push(`/lots/${lot.id}/edit`);
   alert(`Редагування лоту: ${lot.title} (ID: ${lot.id}) - функціонал ще не реалізовано`);
-
 }
 
 onMounted(() => {
   if (userStore.userId) {
     fetchUserLots();
   } else {
+    // Це повідомлення буде показуватися, якщо користувач не авторизований
+    // Можливо, варто перенаправляти на сторінку логіна, якщо userId відсутній
     console.warn('Користувач не авторизований. Лоти не завантажено.');
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
-    isLoadingLots.value = false;
-
+    isLoadingLots.value = false; // Зупиняємо індикатор завантаження
   }
 });
-
 </script>
 
 <style scoped>
