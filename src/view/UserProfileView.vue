@@ -85,21 +85,23 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useUserStore } from '@/stores/userStore';
+// import { useRouter } from 'vue-router'; // Розкоментуйте, якщо будете використовувати router для навігації, наприклад, в editLot
 
+// const router = useRouter(); // Ініціалізуйте, якщо потрібно для editLot
 const userStore = useUserStore();
 
 const lots = ref([]);
-const error = ref(null);
+const error = ref(null); // Для відображення загальних помилок на сторінці
 const isLoadingLots = ref(true);
 const isCreatingLot = ref(false);
 
 const newLot = ref({
   title: '',
   description: '',
-  startPrice: null,
+  startPrice: null, // Важливо: початкове значення null
   startTime: getTodayDate(),
   endTime: getTomorrowDate(),
-  status: true,
+  status: true, // За замовчуванням лот активний (булеве значення)
   image: ''
 });
 
@@ -119,37 +121,39 @@ const apiBaseUrl = 'http://localhost:3000';
 async function fetchUserLots() {
   isLoadingLots.value = true;
   error.value = null;
+  console.log('[UserProfileView] Спроба завантажити лоти, userStore.userId:', userStore.userId);
   if (!userStore.userId) {
-    console.warn("UserID from store is not available for fetching lots.");
+    console.warn("[UserProfileView] UserID зі стору не доступний для завантаження лотів.");
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
     isLoadingLots.value = false;
     return;
   }
   try {
-    const response = await fetch(`${apiBaseUrl}/lots`); // Або додайте параметри пагінації, якщо потрібно, напр. /lots?userId=${userStore.userId}
+    const response = await fetch(`${apiBaseUrl}/lots`, { // Припускаємо, що цей ендпоінт повертає лоти поточного користувача або всі лоти, якщо потрібна фільтрація на бекенді
+        method: 'GET',
+        credentials: 'include' // Додано для сесій
+    });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів` }));
+      const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів (сервер не повернув JSON)` }));
       throw new Error(errorData.message || `Помилка ${response.status} при завантаженні лотів`);
     }
-    const fetchedObject = await response.json(); // Отримуємо об'єкт від сервера
+    const fetchedObject = await response.json();
 
-    console.log('Відповідь від /lots (об\'єкт з бекенду):', fetchedObject);
+    console.log('[UserProfileView] Відповідь від /lots (об\'єкт з бекенду):', fetchedObject);
 
-    // Перевіряємо, чи відповідь є об'єктом і чи містить властивість 'data', яка є масивом
     if (fetchedObject && typeof fetchedObject === 'object' && Array.isArray(fetchedObject.data)) {
       lots.value = fetchedObject.data.map(lot => ({
         ...lot,
-        // Перетворюємо статус на boolean, оскільки v-model для select очікує boolean
         status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
       }));
+      console.log('[UserProfileView] Лоти успішно завантажені та оброблені:', lots.value);
     } else {
-      // Якщо структура відповіді не така, як очікувалося
-      console.error('Отримана відповідь не містить очікуваного масиву лотів у властивості "data":', fetchedObject);
-      throw new Error('Некоректний формат даних лотів від сервера. Очікувався об\'єкт з властивістю "data", що є масивом.');
+      console.error('[UserProfileView] Отримана відповідь не містить очікуваного масиву лотів у властивості "data":', fetchedObject);
+      throw new Error('Некоректний формат даних лотів від сервера.');
     }
   } catch (err) {
-    console.error('Помилка завантаження лотів:', err);
-    error.value = err.message; // Відображаємо помилку користувачу
+    console.error('[UserProfileView] Помилка завантаження лотів (в catch блоці):', err);
+    error.value = err.message;
   } finally {
     isLoadingLots.value = false;
   }
@@ -162,35 +166,40 @@ function formatDate(dateString) {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   } catch (e) {
-    console.error("Invalid date string:", dateString, e);
+    console.error("[UserProfileView] Некоректний рядок дати для formatDate:", dateString, e);
     return 'Невірна дата';
   }
 }
 
 async function updateLotStatus(lotToUpdate) {
   error.value = null;
-  const originalStatus = !lotToUpdate.status; // Зберігаємо поточний статус для можливого відкату
+  const newStatusForBackend = lotToUpdate.status; // v-model вже оновив lot.status до нового значення
 
+  console.log(`[UserProfileView] Спроба оновити статус для лоту ID ${lotToUpdate.id} на: ${newStatusForBackend}`);
   try {
     const response = await fetch(`${apiBaseUrl}/lots/${lotToUpdate.id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newStatus: String(lotToUpdate.status) }) // Надсилаємо рядок "true" або "false"
+      body: JSON.stringify({ newStatus: String(newStatusForBackend) }), // Надсилаємо рядок "true" або "false"
+      credentials: 'include' // Додано для сесій
     });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Помилка оновлення статусу' }));
+      const errorData = await response.json().catch(() => ({ message: 'Помилка оновлення статусу (сервер не повернув JSON)' }));
       throw new Error(errorData.message || 'Помилка оновлення статусу');
     }
-    // Якщо потрібно оновити дані після успішного запиту, можна викликати fetchUserLots()
-    // або оновити конкретний лот в масиві lots.value локально, якщо сервер повертає оновлений лот
+    console.log(`[UserProfileView] Статус для лоту ID ${lotToUpdate.id} успішно оновлено на бекенді.`);
+    // Якщо бекенд повертає оновлений лот, можна оновити його в `lots.value`
+    // const updatedLotFromServer = await response.json();
+    // const lotIndex = lots.value.findIndex(l => l.id === updatedLotFromServer.id);
+    // if (lotIndex !== -1) lots.value.splice(lotIndex, 1, updatedLotFromServer);
   } catch (err) {
-    console.error('Помилка оновлення статусу:', err);
+    console.error('[UserProfileView] Помилка оновлення статусу:', err);
     error.value = err.message;
-    alert(err.message);
+    alert(`Помилка оновлення статусу: ${err.message}`);
     // Відкат зміни статусу в UI у разі помилки
     const lotInArray = lots.value.find(l => l.id === lotToUpdate.id);
     if (lotInArray) {
-      lotInArray.status = originalStatus;
+      lotInArray.status = !newStatusForBackend; // Повертаємо до попереднього значення
     }
   }
 }
@@ -198,63 +207,99 @@ async function updateLotStatus(lotToUpdate) {
 async function deleteLot(lotId) {
   if (confirm('Ви впевнені, що хочете видалити цей лот?')) {
     error.value = null;
+    console.log(`[UserProfileView] Спроба видалити лот ID ${lotId}`);
     try {
       const response = await fetch(`${apiBaseUrl}/lots/${lotId}`, {
         method: 'DELETE',
+        credentials: 'include' // Додано для сесій
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Помилка видалення лоту' }));
+        const errorData = await response.json().catch(() => ({ message: 'Помилка видалення лоту (сервер не повернув JSON)' }));
         throw new Error(errorData.message || 'Помилка видалення лоту');
       }
-      lots.value = lots.value.filter(lot => lot.id !== lotId); // Видаляємо лот з UI
+      lots.value = lots.value.filter(lot => lot.id !== lotId);
+      console.log(`[UserProfileView] Лот ID ${lotId} успішно видалено.`);
     } catch (err) {
-      console.error('Помилка видалення лоту:', err);
+      console.error('[UserProfileView] Помилка видалення лоту:', err);
       error.value = err.message;
-      alert(err.message);
+      alert(`Помилка видалення лоту: ${err.message}`);
     }
   }
 }
 
 async function handleCreateLot() {
+  console.log('[UserProfileView] Спроба створити новий лот. Поточний userStore.userId:', userStore.userId);
   if (!userStore.userId) {
     error.value = "Необхідно авторизуватися для створення лоту.";
     alert(error.value);
     return;
   }
+
+  // --- Покращена клієнтська валідація ---
+  if (!newLot.value.title.trim()) {
+    alert('Назва лоту є обов\'язковою.'); return;
+  }
+  if (!newLot.value.description.trim()) {
+    alert('Опис лоту є обов\'язковим.'); return;
+  }
+  if (newLot.value.startPrice === null || isNaN(parseFloat(newLot.value.startPrice)) || parseFloat(newLot.value.startPrice) <= 0) {
+    alert('Початкова ціна має бути числом більшим за нуль.'); return;
+  }
+  if (!newLot.value.startTime) {
+    alert('Дата початку є обов\'язковою.'); return;
+  }
+  if (!newLot.value.endTime) {
+    alert('Дата завершення є обов\'язковою.'); return;
+  }
+  if (new Date(newLot.value.endTime) <= new Date(newLot.value.startTime)) {
+    alert('Дата завершення має бути пізнішою за дату початку.'); return;
+  }
+  // --- Кінець валідації ---
+
   isCreatingLot.value = true;
   error.value = null;
 
+
   const payload = {
-    userId: userStore.userId, // Переконайтесь, що userStore.userId існує
-    title: newLot.value.title,
-    description: newLot.value.description,
-    start_price: parseFloat(newLot.value.startPrice),
-    status: String(newLot.value.status), // Надсилаємо рядок "true" або "false"
-    start_time: newLot.value.startTime,
-    end_time: newLot.value.endTime,
+    userId: userStore.userId,
+    title: newLot.value.title.trim(),
+    description: newLot.value.description.trim(),
+    startPrice: parseFloat(newLot.value.startPrice),    // <--- ЗМІНЕНО на startPrice (camelCase)
+    currentPrice: parseFloat(newLot.value.startPrice),  // <--- ЗМІНЕНО на currentPrice (camelCase)
+    status: newLot.value.status, // newLot.status вже має бути булевим з вашого select
+    startTime: newLot.value.startTime,                   // <--- ЗМІНЕНО на startTime (camelCase)
+    endTime: newLot.value.endTime,                     // <--- ЗМІНЕНО на endTime (camelCase)
     image: newLot.value.image || null
   };
 
-  console.log("Дані для створення лоту:", payload);
+  // Цей console.log є КЛЮЧОВИМ для діагностики помилки "Не всі обов'язкові поля заповнені"
+  console.log("[UserProfileView] Дані для створення лоту (payload):", JSON.stringify(payload, null, 2));
 
   try {
-    const response = await fetch(`${apiBaseUrl}/lots/create`, { // Перевірте, чи цей ендпоінт правильний
+    const response = await fetch(`${apiBaseUrl}/lots/create`, { // Перевірте, чи URL /lots/create правильний
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      credentials: 'include' // Додано для сесій
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Помилка створення лоту' }));
-      throw new Error(errorData.message || errorData.error || 'Невідома помилка створення лоту');
+    if (!response.ok) { // Якщо статус не 2xx (наприклад, 400, 401, 500)
+      const errorData = await response.json().catch(() => ({ 
+        error: `Помилка створення лоту. Статус: ${response.status}. Сервер не повернув JSON.` 
+      }));
+      // errorData.message з вашого бекенду (якщо є), або errorData.error, або запасне повідомлення
+      throw new Error(errorData.message || errorData.error || `Невідома помилка створення лоту (статус ${response.status})`);
     }
 
-    const createdLot = await response.json();
+    const createdLot = await response.json(); // Очікуємо, що бекенд поверне створений лот
+    console.log("[UserProfileView] Лот успішно створено на бекенді:", createdLot);
+    
     // Додаємо новий лот на початок списку і коректно обробляємо його статус
     lots.value.unshift({
         ...createdLot,
         status: typeof createdLot.status === 'string' ? createdLot.status.toLowerCase() === 'true' : Boolean(createdLot.status)
     });
+    
     // Очищаємо форму
     newLot.value = {
       title: '',
@@ -262,33 +307,31 @@ async function handleCreateLot() {
       startPrice: null,
       startTime: getTodayDate(),
       endTime: getTomorrowDate(),
-      status: true, // Повертаємо до значення за замовчуванням
+      status: true,
       image: ''
     };
   } catch (err) {
-    console.error('Помилка створення лоту:', err);
-    error.value = err.message;
-    alert(err.message);
+    console.error('[UserProfileView] Помилка створення лоту (в catch блоці):', err);
+    error.value = err.message; // Відображаємо помилку користувачу через <div v-if="error"...>
+    alert(`Помилка створення лоту: ${err.message}`); // Додатково показуємо alert
   } finally {
     isCreatingLot.value = false;
   }
 }
 
 function editLot(lot) {
-  // Тут має бути логіка переходу на сторінку редагування або відкриття модального вікна
-  // Наприклад: router.push(`/lots/${lot.id}/edit`);
   alert(`Редагування лоту: ${lot.title} (ID: ${lot.id}) - функціонал ще не реалізовано`);
+  // Для реалізації: router.push(`/edit-lot/${lot.id}`); або відкриття модального вікна
 }
 
 onMounted(() => {
+  console.log('[UserProfileView] Компонент змонтовано, поточний userStore.userId:', userStore.userId);
   if (userStore.userId) {
     fetchUserLots();
   } else {
-    // Це повідомлення буде показуватися, якщо користувач не авторизований
-    // Можливо, варто перенаправляти на сторінку логіна, якщо userId відсутній
-    console.warn('Користувач не авторизований. Лоти не завантажено.');
+    console.warn('[UserProfileView] Користувач не авторизований при завантаженні профілю. Лоти не завантажено.');
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
-    isLoadingLots.value = false; // Зупиняємо індикатор завантаження
+    isLoadingLots.value = false; // Зупиняємо індикатор завантаження, бо запиту не буде
   }
 });
 </script>

@@ -1,12 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter } from 'vue-router'; // Імпортуємо useRouter
 import { useUserStore } from '@/stores/userStore';
 
-const router = useRouter();
+const router = useRouter(); // Ініціалізуємо роутер
 const userStore = useUserStore();
 
-userStore.clearUser();
+// userStore.clearUser(); // Зазвичай clearUser викликається при виході або при першому завантаженні компонента, якщо це потрібно
 
 const form = ref({
     fname: '',
@@ -16,9 +16,9 @@ const errors = ref([]);
 
 async function login(e) {
     e.preventDefault();
-    localStorage.removeItem('user');
-    errors.value = [];
+    errors.value = []; // Очищаємо попередні помилки
 
+    // Клієнтська валідація
     if (!form.value.fname) {
         errors.value.push("Ім'я є обов'язковим");
     }
@@ -34,26 +34,35 @@ async function login(e) {
                 'Content-Type': 'application/json; charset=UTF-8',
             },
             body: JSON.stringify(form.value),
+            credentials: 'include' // <--- ДОДАНО ЦЕЙ РЯДОК
         });
 
-        if (res.ok) {
+        if (res.ok) { // Статус 200-299
             const data = await res.json();
-            if (data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                userStore.setUser(data.user);
+            if (data.user) { // Перевіряємо, чи є об'єкт user у відповіді
+                localStorage.setItem('user', JSON.stringify(data.user)); // Зберігаємо об'єкт користувача
+                userStore.setUser(data.user); // Передаємо об'єкт data.user (який має поле id, fname і т.д.)
                 router.push('/users/profile');
             } else {
-                errors.value.push('Неправильні дані для входу');
+                // Якщо res.ok, але data.user немає (малоймовірно з вашим бекендом)
+                errors.value.push('Не вдалося отримати дані користувача з відповіді сервера.');
             }
-        } else {
-            const errorData = await res.json();
-            errors.value.push(
-                errorData.message || 'Неправильні дані для входу'
-            );
+        } else { // Якщо статус не ОК (наприклад, 401, 500)
+            let errorMsg = 'Неправильні дані для входу'; // Повідомлення за замовчуванням
+            try {
+                const errorData = await res.json();
+                // Бекенд для 401 повертає { error: "..." }
+                errorMsg = errorData.error || errorData.message || errorMsg;
+            } catch (parseError) {
+                // Якщо тіло відповіді не JSON або порожнє
+                console.error('Помилка розбору JSON відповіді помилки (вхід):', parseError);
+                errorMsg = `Помилка сервера: ${res.status} ${res.statusText}`;
+            }
+            errors.value.push(errorMsg);
         }
     } catch (error) {
-        console.error('Помилка входу:', error);
-        errors.value.push('Помилка сервера. Спробуйте пізніше.');
+        console.error('Помилка з\'єднання або запиту (вхід):', error);
+        errors.value.push('Помилка з\'єднання з сервером. Спробуйте пізніше.');
     }
 }
 </script>
