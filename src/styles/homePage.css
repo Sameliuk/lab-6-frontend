@@ -78,7 +78,8 @@ a.logo {
 .desc {
     font-size: 15px;
     font-weight: 100;
-    word-wrap: break-word;
+    word-wrap: break-word; /* Додаємо перенесення слів */
+    white-space: normal;
 }
 
 .price {
@@ -151,4 +152,20 @@ a.logo {
 
 .logout-btn:hover {
     background-color: #d32f2f;
+}
+
+.filter-bar input {
+    padding: 8px;
+    border: 1px solid navy;
+    border-radius: 5px;
+    margin: 5px;
+}
+
+.filter-bar button {
+    background-color: rgb(120, 120, 233);
+    border: none;
+    color: white;
+    padding: 8px;
+    margin: 5px;
+    border-radius: 5px;
 }
