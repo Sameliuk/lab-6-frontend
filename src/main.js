@@ -11,6 +11,6 @@ app.use(pinia);
 app.use(router);
 
 const userStore = useUserStore();
-userStore.loadUserFromLocalStorage(); // Завантажуємо дані з LocalStorage
+userStore.loadUserFromLocalStorage();
 
 app.mount('#app');
