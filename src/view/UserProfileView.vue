@@ -114,7 +114,7 @@ function getTomorrowDate() {
   return tomorrow.toISOString().split('T')[0];
 }
 
-const apiBaseUrl = ''; 
+const apiBaseUrl = 'http://localhost:3000'; 
 
 async function fetchUserLots() {
   isLoadingLots.value = true;
