@@ -34,9 +34,6 @@ export default {
                         url += `&endTime=${formattedEndTime}`;
                     }
                 }
-                if (this.searchQuery.trim()) {
-                    url += `&search=${encodeURIComponent(this.searchQuery)}`;
-                }
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('Помилка отримання лотів');
                 const data = await response.json();
@@ -53,8 +50,31 @@ export default {
                 this.fetchAllLots();
                 return;
             }
-            this.currentPage = 1;
-            this.fetchAllLots();
+            try {
+                const response = await fetch(
+                    'http://localhost:3000/lots/search',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: this.searchQuery }),
+                    }
+                );
+                if (!response.ok) throw new Error('Помилка пошуку');
+                const data = await response.json();
+                this.lots = Array.isArray(data) ? data : data.data;
+                this.activeLots = Array.isArray(data)
+                    ? data.filter((lot) => lot.status)
+                    : data.data.filter((lot) => lot.status);
+
+                this.totalPages = 1;
+                this.currentPage = 1;
+
+                if (this.activeLots.length === 0) {
+                    alert('Лоти не знайдено.');
+                }
+            } catch (error) {
+                alert('Помилка при виконанні пошуку. Спробуйте пізніше.');
+            }
         },
         changePage(page) {
             if (page > 0 && page <= this.totalPages) {
