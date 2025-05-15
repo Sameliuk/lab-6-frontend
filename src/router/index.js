@@ -3,6 +3,7 @@ import HomeView from '../view/HomeView.vue';
 import SignInView from '../view/auth/SignInView.vue';
 import SignUpView from '../view/auth/SignUpView.vue';
 import UserProfileView from '../view/UserProfileView.vue';
+import LotView from '../view/LotView.vue';
 
 const router = createRouter({
     history: createWebHistory(process.env.BASE_URL),
@@ -27,6 +28,12 @@ const router = createRouter({
             name: 'profile',
             component: UserProfileView,
         },
+        { 
+        path: '/lots/:id',
+        name: 'lotView',
+        component: LotView,
+        props: true,
+    },
     ],
 });
 

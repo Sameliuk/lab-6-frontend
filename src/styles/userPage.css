@@ -1,36 +1,32 @@
-/* Загальні стилі */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #fffefc;
-    color: navy; /* Основний колір тексту */
+    color: navy; 
 }
 
-/* Контейнер для вмісту */
 .container {
-    max-width: 1000px; /* Або інша ширина за вашим дизайном */
-    margin: 20px auto; /* Додано верхній/нижній відступ для контейнера */
+    max-width: 1000px; 
+    margin: 20px auto; 
     padding: 20px;
 }
 
-/* Секція для створення лоту */
 .create-lot-section {
-    background: #f8f9fa; /* Світлий фон */
-    border: 1px solid #dee2e6; /* Трохи темніша рамка */
+    background: #f8f9fa; 
+    border: 1px solid #dee2e6; 
     padding: 25px;
     border-radius: 10px;
     margin: 30px 0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); /* Трохи виразніша тінь */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); 
 }
 
-/* Контейнер для відображення лотів */
 #lots-container {
     display: flex;
     flex-wrap: wrap;
-    /* Прибираємо gap, якщо використовуємо margin для .lot */
-    /* Можна додати негативний margin, щоб компенсувати margin дочірніх елементів, якщо потрібно */
-    /* margin: -10px; */
+    
+    
+    
 }
 
 .lot {
@@ -39,32 +35,32 @@ body {
     border-radius: 8px;
     padding: 20px;
     min-width: 1000px;
-    margin: 10px 0; /* Додаємо margin з усіх боків */
-    width: calc(33.333% - 20px); /* (10px margin зліва + 10px margin справа = 20px) */
-    /* Для 3 колонок: 100%/3 - (сумарний горизонтальний margin для одного елемента) */
+    margin: 10px 0; 
+    width: calc(33.333% - 20px); 
+    
     box-sizing: border-box;
-    /* ... інші стилі для .lot ... */
+    
     display: flex;
     flex-direction: column;
     transition: 0.35s;
 }
 
 .title {
-    font-size: 28px; /* Трохи менший, якщо 30px завеликий */
-    margin-bottom: 25px; /* Збільшено відступ знизу */
+    font-size: 28px; 
+    margin-bottom: 25px; 
     color: navy;
     font-weight: bold;
     text-align: center;
 }
 
 .lot:hover {
-    transform: translateY(-5px); /* Менший ефект підйому */
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Більш виразна тінь при наведенні */
+    transform: translateY(-5px); 
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
 }
 
-.lot .lot-image-container { /* Стилі для контейнера зображення, якщо ви його додали */
+.lot .lot-image-container { 
     width: 100%;
-    /* height: 180px; Можна задати фіксовану висоту */
+    
     overflow: hidden;
     margin-bottom: 15px;
     display: flex;
@@ -74,36 +70,35 @@ body {
 
 .lot .lot-image-container img {
     max-width: 100%;
-    max-height: 180px; /* Або інша висота */
-    object-fit: cover; /* Або contain, залежно від бажаного відображення */
+    max-height: 180px; 
+    object-fit: cover; 
     border-radius: 4px;
 }
 
-
 .lot h3 {
-    font-size: 1.25rem; /* ~20px */
-    color: #343a40; /* Темніший колір для заголовка лоту */
+    font-size: 1.25rem; 
+    color: #343a40; 
     margin-top: 0;
     margin-bottom: 10px;
 }
 
 .lot p {
-    font-size: 0.95rem; /* ~15px */
-    margin-bottom: 8px; /* Трохи більший відступ між параграфами */
-    color: #5a6268; /* М'якший колір тексту */
+    font-size: 0.95rem; 
+    margin-bottom: 8px; 
+    color: #5a6268; 
     line-height: 1.5;
     word-wrap: break-word;
-    flex-grow: 1; /* Дозволяє блоку з текстом розтягуватися, якщо картки різної висоти */
+    flex-grow: 1; 
 }
 
-.lot p.desc { /* Якщо є окремий клас для опису */
+.lot p.desc { 
     color: #495057;
 }
 
 .status-select {
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 0.9rem; /* ~14px */
+    font-size: 0.9rem; 
     margin-right: 10px;
     border: 1px solid #ced4da;
     background-color: #fff;
@@ -111,31 +106,30 @@ body {
 }
 
 .status-indicator {
-    /* Замість padding, використовуємо фіксовані розміри для кружечка */
-    display: inline-block; /* Щоб width/height працювали */
+    
+    display: inline-block; 
     width: 12px;
     height: 12px;
-    border-radius: 50%; /* Робить його круглим */
-    vertical-align: middle; /* Краще вирівнювання з текстом/селектом */
-    /* Текст "Активний/Неактивний" тепер буде окремо, якщо потрібен */
+    border-radius: 50%; 
+    vertical-align: middle; 
+    
 }
 
 .status-indicator.active {
-    background-color: #28a745; /* Зелений для активного */
+    background-color: #28a745; 
 }
 
 .status-indicator.inactive {
-    background-color: #dc3545; /* Червоний для неактивного */
+    background-color: #dc3545; 
 }
 
-/* Кнопки дій всередині лоту */
 .lot-actions {
     display: flex;
-    gap: 10px; /* Простір між кнопками */
-    margin-top: 15px; /* Відступ зверху від контенту лоту */
+    gap: 10px; 
+    margin-top: 15px; 
 }
 
-.lot-actions button { /* Загальні стилі для кнопок дій, якщо потрібно */
+.lot-actions button { 
     padding: 8px 12px;
     font-size: 0.9rem;
     border-radius: 4px;
@@ -144,60 +138,54 @@ body {
     transition: background-color 0.2s ease, transform 0.1s ease;
 }
 .lot-actions button:active {
-    transform: scale(0.98); /* Ефект натискання */
+    transform: scale(0.98); 
 }
 
-
-/* Кнопка редагування (зелена) */
 .edit-lot-button {
-    background-color: #28a745; /* Більш стандартний зелений */
+    background-color: #28a745; 
     color: white;
 }
 .edit-lot-button:hover {
     background-color: #218838;
 }
 .edit-lot-button:disabled,
-.edit-lot-button.disabled-button { /* Ви вже мали ці стилі, вони добрі */
+.edit-lot-button.disabled-button { 
     opacity: 0.65;
     cursor: not-allowed;
-    background-color: #6c757d; /* Сірий для неактивної */
+    background-color: #6c757d; 
 }
 
-/* Кнопка видалення (червона) */
 .delete-lot-button {
-    background-color: #dc3545; /* Стандартний червоний для видалення */
+    background-color: #dc3545; 
     color: white;
 }
 .delete-lot-button:hover {
     background-color: #c82333;
 }
 
-
-/* Стилі для форми створення лоту */
 .form-group {
-    margin-bottom: 1.25rem; /* ~20px */
+    margin-bottom: 1.25rem; 
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem; /* ~8px */
+    margin-bottom: 0.5rem; 
     font-weight: 600;
-    color: #343a40; /* Темніший колір для лейблів */
+    color: #343a40; 
 }
 
-/* Уніфіковані стилі для інпутів, textarea, select */
 .form-group input[type='text'],
 .form-group input[type='number'],
 .form-group input[type='date'],
 .form-group textarea,
 .form-group select {
-    width: 100%; /* Займає всю доступну ширину */
+    width: 100%; 
     padding: 10px 12px;
-    border: 1px solid #ced4da; /* Світліша рамка */
+    border: 1px solid #ced4da; 
     border-radius: 5px;
-    font-size: 1rem; /* ~16px */
-    color: #495057; /* Колір тексту в інпуті */
-    box-sizing: border-box; /* Щоб padding не збільшував загальну ширину */
+    font-size: 1rem; 
+    color: #495057; 
+    box-sizing: border-box; 
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -207,13 +195,12 @@ body {
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;
-    border-color: rgb(100, 100, 220); /* Трохи інший колір фокусу */
-    box-shadow: 0 0 0 3px rgba(100, 100, 220, 0.25); /* Тінь фокусу */
+    border-color: rgb(100, 100, 220); 
+    box-shadow: 0 0 0 3px rgba(100, 100, 220, 0.25); 
 }
 
-/* Кнопка відправки форми (Створити лот) */
-.create-lot-section button[type="submit"] { /* Більш специфічний селектор */
-    background-color: rgb(80, 80, 200); /* Синій для основної дії */
+.create-lot-section button[type="submit"] { 
+    background-color: rgb(80, 80, 200); 
     color: white;
     padding: 12px 25px;
     border: none;
@@ -221,11 +208,11 @@ body {
     cursor: pointer;
     font-size: 1rem;
     transition: background-color 0.2s ease;
-    width: 100%; /* На всю ширину, якщо потрібно */
+    width: 100%; 
 }
 
 .create-lot-section button[type="submit"]:hover {
-    background-color: #4a4ccc; /* Темніший синій при наведенні */
+    background-color: #4a4ccc; 
 }
 
 .create-lot-section button[type="submit"]:disabled {
@@ -237,9 +224,9 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #ffffff; /* Чистий білий */
-    padding: 15px 30px; /* Збільшено горизонтальний padding */
-    border-bottom: 1px solid #dee2e6; /* Тонша лінія */
+    background-color: #ffffff; 
+    padding: 15px 30px; 
+    border-bottom: 1px solid #dee2e6; 
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
@@ -254,15 +241,15 @@ a.logo:hover {
 }
 
 .logo {
-    /* margin-left: 25px; Вирівнювання через space-between в header */
-    font-size: 2rem; /* ~32px, можна налаштувати */
+    
+    font-size: 2rem; 
     font-weight: bold;
 }
 
-.profile a { /* Стилі для посилань у профілі в хедері */
+.profile a { 
     text-decoration: none;
     font-weight: bold;
-    margin-left: 15px; /* Відступ між посиланнями/кнопками в хедері */
+    margin-left: 15px; 
     color: navy;
     padding: 8px 12px;
     border-radius: 4px;
@@ -272,31 +259,29 @@ a.logo:hover {
     background-color: #f0f0f0;
     color: #000080;
 }
-.profile button { /* Якщо кнопка "Вийти" має бути схожа на посилання */
+.profile button { 
     margin-left: 15px;
     background-color: transparent;
     color: navy;
     border: 1px solid navy;
-    /* інші стилі кнопок, якщо треба адаптувати */
+    
 }
 .profile button:hover {
     background-color: navy;
     color: white;
 }
 
-
-/* Стилі для модального вікна (якщо використовуються) */
 .modal {
-    display: none; /* За замовчуванням приховано, керується JS */
+    display: none; 
     position: fixed;
-    z-index: 1050; /* Вищий z-index */
+    z-index: 1050; 
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Трохи темніше затемнення */
-    overflow-y: auto; /* Дозволяє прокрутку, якщо вміст більший */
-    display: flex; /* Для центрування .modal-content */
+    background-color: rgba(0, 0, 0, 0.6); 
+    overflow-y: auto; 
+    display: flex; 
     align-items: center;
     justify-content: center;
 }
@@ -305,32 +290,32 @@ a.logo:hover {
     background-color: white;
     padding: 25px 30px;
     border-radius: 8px;
-    width: auto; /* Ширина по вмісту */
-    min-width: 300px; /* Мінімальна ширина */
-    max-width: 600px; /* Максимальна ширина */
+    width: auto; 
+    min-width: 300px; 
+    max-width: 600px; 
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    position: relative; /* Для позиціонування кнопки закриття */
-    /* top: 50px; Видалено, бо центрування через flex */
-    /* margin: 20px auto; Видалено */
+    position: relative; 
+    
+    
 }
 
 .close-modal {
-    position: absolute; /* Позиціонування відносно .modal-content */
+    position: absolute; 
     top: 10px;
     right: 15px;
-    font-size: 1.8rem; /* Трохи більший хрестик */
+    font-size: 1.8rem; 
     font-weight: bold;
-    color: #aaa; /* Сірий колір для хрестика */
+    color: #aaa; 
     cursor: pointer;
     line-height: 1;
 }
 
 .close-modal:hover,
 .close-modal:focus {
-    color: #333; /* Темніший при наведенні/фокусі */
+    color: #333; 
     text-decoration: none;
 }
 
-body.modal-open { /* Цей клас додається до body через JS для блокування прокрутки */
+body.modal-open { 
     overflow: hidden;
 }
