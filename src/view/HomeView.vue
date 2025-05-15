@@ -39,9 +39,12 @@ export default {
                         url += `&endTime=${formattedEndTime}`;
                     }
                 }
+<<<<<<< HEAD
                 if (this.searchQuery.trim()) {
                     url += `&search=${encodeURIComponent(this.searchQuery.trim())}`;
                 }
+=======
+>>>>>>> 605ad20 (search)
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`Помилка отримання лотів: ${response.statusText}`);
                 const data = await response.json();
@@ -74,9 +77,41 @@ export default {
             }
         },
         async performSearch() {
+<<<<<<< HEAD
             // Скидання на першу сторінку перед новим пошуком/фільтрацією
             this.currentPage = 1;
             this.fetchAllLots();
+=======
+            if (!this.searchQuery.trim()) {
+                this.fetchAllLots();
+                return;
+            }
+            try {
+                const response = await fetch(
+                    'http://localhost:3000/lots/search',
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: this.searchQuery }),
+                    }
+                );
+                if (!response.ok) throw new Error('Помилка пошуку');
+                const data = await response.json();
+                this.lots = Array.isArray(data) ? data : data.data;
+                this.activeLots = Array.isArray(data)
+                    ? data.filter((lot) => lot.status)
+                    : data.data.filter((lot) => lot.status);
+
+                this.totalPages = 1;
+                this.currentPage = 1;
+
+                if (this.activeLots.length === 0) {
+                    alert('Лоти не знайдено.');
+                }
+            } catch (error) {
+                alert('Помилка при виконанні пошуку. Спробуйте пізніше.');
+            }
+>>>>>>> 605ad20 (search)
         },
         changePage(page) {
             if (page > 0 && page <= this.totalPages && page !== this.currentPage) {
