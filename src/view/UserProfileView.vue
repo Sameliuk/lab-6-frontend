@@ -327,193 +327,236 @@ onMounted(() => {
 
 <style scoped>
 
-/* Загальні стилі */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #fffefc;
-    color: navy;
+    color: navy; 
 }
 
-/* Контейнер для вмісту */
 .container {
-    max-width: 1000px;
-    margin: 0 auto;
+    max-width: 1000px; 
+    margin: 20px auto; 
     padding: 20px;
 }
 
-/* Секція для створення лоту і лоти */
 .create-lot-section {
-    background: #f8f9fa;
-    border: 1px solid rgb(238, 238, 239);
+    background: #f8f9fa; 
+    border: 1px solid #dee2e6; 
     padding: 25px;
     border-radius: 10px;
     margin: 30px 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); 
 }
 
 #lots-container {
-    padding: 25px;
     display: flex;
     flex-wrap: wrap;
+    
+    
+    
+}
+
+.lot {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 1000px;
+    margin: 10px 0; 
+    width: calc(33.333% - 20px); 
+    
+    box-sizing: border-box;
+    
+    display: flex;
+    flex-direction: column;
+    transition: 0.35s;
 }
 
 .title {
-    font-size: 30px;
-    margin-bottom: 5px;
+    font-size: 28px; 
+    margin-bottom: 25px; 
     color: navy;
     font-weight: bold;
     text-align: center;
 }
 
-.lot {
-    background-color: #f8f9fa;
-    border: 1px solid rgb(238, 238, 239);
-    border-radius: 8px;
-    padding: 20px;
-    margin: 10px;
-    width: 30%;
-    box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    margin-bottom: 20px;
+.lot:hover {
+    transform: translateY(-5px); 
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
 }
 
-.lot:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.lot .lot-image-container { 
+    width: 100%;
+    
+    overflow: hidden;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lot .lot-image-container img {
+    max-width: 100%;
+    max-height: 180px; 
+    object-fit: cover; 
+    border-radius: 4px;
 }
 
 .lot h3 {
-    font-size: 20px;
+    font-size: 1.25rem; 
+    color: #343a40; 
+    margin-top: 0;
     margin-bottom: 10px;
 }
 
 .lot p {
-    font-size: 16px;
-    margin: 5px 0;
-    color: #7a80a2;
+    font-size: 0.95rem; 
+    margin-bottom: 8px; 
+    color: #5a6268; 
+    line-height: 1.5;
     word-wrap: break-word;
+    flex-grow: 1; 
+}
+
+.lot p.desc { 
+    color: #495057;
 }
 
 .status-select {
-    padding: 5px;
+    padding: 6px 10px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 0.9rem; 
     margin-right: 10px;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    color: #495057;
 }
 
 .status-indicator {
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 14px;
-    display: inline-block;
+    
+    display: inline-block; 
+    width: 12px;
+    height: 12px;
+    border-radius: 50%; 
+    vertical-align: middle; 
+    
 }
 
 .status-indicator.active {
-    background-color: #4caf50;
-    color: white;
+    background-color: #28a745; 
 }
 
 .status-indicator.inactive {
-    background-color: #f44336;
+    background-color: #dc3545; 
+}
+
+.lot-actions {
+    display: flex;
+    gap: 10px; 
+    margin-top: 15px; 
+}
+
+.lot-actions button { 
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.lot-actions button:active {
+    transform: scale(0.98); 
+}
+
+.edit-lot-button {
+    background-color: #28a745; 
     color: white;
+}
+.edit-lot-button:hover {
+    background-color: #218838;
+}
+.edit-lot-button:disabled,
+.edit-lot-button.disabled-button { 
+    opacity: 0.65;
+    cursor: not-allowed;
+    background-color: #6c757d; 
 }
 
 .delete-lot-button {
-    background-color: rgb(120, 120, 233);
+    background-color: #dc3545; 
     color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
 }
-
 .delete-lot-button:hover {
-    background-color: #6c6ce5;
+    background-color: #c82333;
 }
 
-/* Стилі для форми */
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem; 
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem; 
     font-weight: 600;
-    color: navy;
+    color: #343a40; 
 }
 
 .form-group input[type='text'],
+.form-group input[type='number'],
+.form-group input[type='date'],
 .form-group textarea,
-.form-group input[type='number'] {
-    width: 98%;
-    padding: 10px;
-    border: 1px solid navy;
+.form-group select {
+    width: 100%; 
+    padding: 10px 12px;
+    border: 1px solid #ced4da; 
     border-radius: 5px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
+    font-size: 1rem; 
+    color: #495057; 
+    box-sizing: border-box; 
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input[type='text']:focus,
+.form-group input[type='number']:focus,
 .form-group input[type='date']:focus,
 .form-group textarea:focus,
-.form-group input[type='number']:focus,
 .form-group select:focus {
     outline: none;
-    border-color: rgb(120, 120, 233);
-    box-shadow: 0 0 0 2px rgba(120, 120, 233, 0.2);
+    border-color: rgb(100, 100, 220); 
+    box-shadow: 0 0 0 3px rgba(100, 100, 220, 0.25); 
 }
 
-/* Стилі для селекту */
-select,
-.form-group input[type='date'] {
-    border: 1px solid navy;
-    border-radius: 5px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
-    width: 150px;
-    padding: 10px;
-    color: navy;
-    cursor: pointer;
-}
-
-select option {
-    padding: 10px;
-    font-size: 16px;
-}
-
-/* Стилі для кнопки */
-button {
-    background-color: rgb(120, 120, 233);
+.create-lot-section button[type="submit"] { 
+    background-color: rgb(80, 80, 200); 
     color: white;
     padding: 12px 25px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+    width: 100%; 
 }
 
-.button:hover {
-    background-color: #6c6ce5;
+.create-lot-section button[type="submit"]:hover {
+    background-color: #4a4ccc; 
 }
-.disabled-button {
-    opacity: 0.5;
+
+.create-lot-section button[type="submit"]:disabled {
+    background-color: #6c757d;
     cursor: not-allowed;
 }
 
-/* Header */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #fffefc;
-    padding: 15px 20px;
-    border-bottom: 2px solid #ccc;
+    background-color: #ffffff; 
+    padding: 15px 30px; 
+    border-bottom: 1px solid #dee2e6; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 a.logo {
@@ -527,72 +570,83 @@ a.logo:hover {
 }
 
 .logo {
-    margin-left: 25px;
-    font-size: 50px;
+    
+    font-size: 2rem; 
     font-weight: bold;
 }
 
-.profile a {
+.profile a { 
     text-decoration: none;
     font-weight: bold;
-    margin: 15px;
+    margin-left: 15px; 
+    color: navy;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
+.profile a:hover {
+    background-color: #f0f0f0;
+    color: #000080;
+}
+.profile button { 
+    margin-left: 15px;
+    background-color: transparent;
+    color: navy;
+    border: 1px solid navy;
+    
+}
+.profile button:hover {
+    background-color: navy;
+    color: white;
+}
+
 .modal {
-    display: none;
+    display: none; 
     position: fixed;
-    z-index: 1000;
+    z-index: 1050; 
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.6); 
+    overflow-y: auto; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
     background-color: white;
-    position: relative;
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 5px;
-    width: 80%;
-    max-width: 600px;
-    top: 50px;
+    padding: 25px 30px;
+    border-radius: 8px;
+    width: auto; 
+    min-width: 300px; 
+    max-width: 600px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative; 
+    
+    
 }
 
 .close-modal {
-    float: right;
-    font-size: 28px;
+    position: absolute; 
+    top: 10px;
+    right: 15px;
+    font-size: 1.8rem; 
     font-weight: bold;
+    color: #aaa; 
     cursor: pointer;
+    line-height: 1;
 }
 
-.close-modal:hover {
-    color: #f44336;
+.close-modal:hover,
+.close-modal:focus {
+    color: #333; 
+    text-decoration: none;
 }
-body.modal-open {
+
+body.modal-open { 
     overflow: hidden;
-}
-
-/* Кнопка редагування */
-.edit-lot-button {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    margin-right: 10px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.edit-lot-button:hover {
-    background-color: #45a049;
-}
-
-/* Стилі для кнопок дій */
-.lot-actions {
-    display: flex;
-    margin-top: 10px;
 }
 
 </style>
