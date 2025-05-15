@@ -1,20 +1,5 @@
 <template>
   <div>
-    <header>
-      <router-link to="/" class="logo">Lotify</router-link>
-      <div class="search-bar">
-        <input type="search" id="searchInput" placeholder="Пошук..." />
-        <button id="searchButton">Пошук</button>
-      </div>
-      <div class="profile">
-        <router-link v-if="!userStore.isLoggedIn" to="/users/signIn">Увійти</router-link>
-        <template v-if="userStore.isLoggedIn">
-          <router-link :to="{ name: 'profile' }">{{ userStore.currentUserFname || 'Профіль' }}</router-link>
-          <button @click="handleLogout">Вийти</button>
-        </template>
-      </div>
-    </header>
-
     <main>
       <div class="container">
         <div v-if="isLoading" class="loading-message">
@@ -259,42 +244,13 @@ async function handlePlaceBid() {
     }
 }
 
-async function handleLogout() {
-  console.log('[LotView] Спроба виходу з системи');
-  try {
-    const response = await fetch(`${apiBaseUrl}/users/logOut`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-    // Незалежно від успіху на сервері, чистимо локальний стан
-    userStore.clearUser();
-    router.push({ name: 'signIn' });
-    if (response.ok) {
-      console.log('[LotView] Користувач успішно вийшов.');
-    } else {
-      const errorText = await response.text();
-      console.error('[LotView] Помилка виходу на сервері (відповідь не ОК):', errorText);
-    }
-  } catch (error) {
-    console.error('[LotView] Помилка мережі під час запиту на вихід:', error);
-    userStore.clearUser(); // Чистимо локальний стан і у випадку помилки мережі
-    router.push({ name: 'signIn' });
-  }
-}
-
 onMounted(() => {
     console.log('[LotView] Компонент змонтовано. Параметри маршруту:', route.params);
-    // Переконуємось, що userStore вже міг завантажити дані з localStorage
-    // (це має відбуватися при ініціалізації додатку в main.js)
-    // if (!userStore.isLoggedIn && localStorage.getItem('user')) {
-    //   userStore.loadUserFromLocalStorage();
-    // }
     fetchLotDetails();
 });
 </script>
 
 <style scoped>
-/* Загальні стилі для контейнера сторінки та хедера (якщо вони не глобальні) */
 .container {
     max-width: 900px;
     margin: 20px auto;
@@ -308,16 +264,16 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #fffefc; /* З вашого попереднього CSS */
+    background-color: #fffefc; 
     padding: 15px 30px;
-    border-bottom: 1px solid #e0e0e0; /* Тонша лінія, ніж #ccc */
+    border-bottom: 1px solid #e0e0e0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 header .logo {
     text-decoration: none;
     color: navy;
-    font-size: 2rem; /* Або 50px, як було */
+    font-size: 2rem; 
     font-weight: bold;
 }
 header .logo:hover {
@@ -326,8 +282,8 @@ header .logo:hover {
 
 header .search-bar {
     display: flex;
-    flex-grow: 0.4; /* Можна налаштувати, щоб не розтягувався занадто */
-    max-width: 400px; /* Обмеження ширини */
+    flex-grow: 0.4; 
+    max-width: 400px; 
 }
 header .search-bar input[type="search"] {
     padding: 8px 12px;
@@ -370,7 +326,7 @@ header .profile a, header .profile button {
     border-radius: 4px;
     transition: background-color 0.2s ease, color 0.2s ease;
     font-size: 0.95rem;
-    white-space: nowrap; /* Щоб текст не переносився */
+    white-space: nowrap; 
 }
 header .profile a:hover {
     background-color: #f0f0f0;
@@ -387,29 +343,28 @@ header .profile button:hover {
 }
 
 
-/* Стилі для сторінки лоту */
 .loading-message, .lot-inactive-message, .lot-login-required-message {
     text-align: center;
     padding: 30px 20px;
     font-size: 1.2em;
     color: #555;
 }
-.error-message { /* Стиль для помилок, що відображаються в шаблоні */
+.error-message { 
     text-align: center;
     padding: 15px;
     font-size: 1.1em;
-    color: #721c24; /* Темно-червоний */
-    background-color: #f8d7da; /* Світло-рожевий */
-    border: 1px solid #f5c6cb; /* Рожева рамка */
+    color: #721c24; 
+    background-color: #f8d7da; 
+    border: 1px solid #f5c6cb; 
     border-radius: 5px;
     margin: 15px 0;
 }
 
 
 .lot-title {
-    font-size: 2.2rem; /* Трохи менший, якщо 2.5rem завеликий */
+    font-size: 2.2rem; 
     color: navy;
-    margin-top: 0; /* Забираємо верхній відступ, якщо container має padding */
+    margin-top: 0; 
     margin-bottom: 15px;
     text-align: center;
     font-weight: bold;
@@ -417,62 +372,60 @@ header .profile button:hover {
 
 .lot-description {
     font-size: 1.1rem;
-    color: #495057; /* Трохи темніший текст опису */
-    margin-bottom: 25px;
-    line-height: 1.7; /* Збільшена міжрядкова відстань */
-    text-align: left; /* Або justify, якщо подобається вирівнювання по ширині */
+    color: #495057; 
+    line-height: 1.7; 
+    text-align: left; 
 }
 
 .lot-info {
-    display: grid; /* Використовуємо grid для кращого контролю */
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Адаптивні колонки */
-    gap: 20px; /* Простір між блоками */
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 20px; 
     background-color: #f8f9fa;
     padding: 20px;
-    border-radius: 8px; /* Більший радіус */
-    margin-bottom: 30px; /* Збільшений відступ */
+    border-radius: 8px; 
+    margin-bottom: 30px;
     font-size: 1rem;
     border: 1px solid #e9ecef;
 }
 .lot-info p {
-    margin: 8px 0; /* Збільшено вертикальний відступ */
+    margin: 8px 0; 
     color: #343a40;
 }
 .lot-info strong {
     color: navy;
-    margin-right: 8px; /* Відступ після жирного тексту */
+    margin-right: 8px;
 }
 .lot-info .price {
     font-weight: bold;
-    color: #28a745; /* Зелений для ціни */
+    color: #28a745; 
     font-size: 1.1em;
 }
 
 .lot-image {
     text-align: center;
     margin-bottom: 30px;
-    background-color: #f8f9fa; /* Фон для області зображення */
+    background-color: #f8f9fa;
     padding: 10px;
     border-radius: 8px;
     border: 1px solid #e9ecef;
 }
 .lot-image img {
     max-width: 100%;
-    max-height: 500px; /* Трохи збільшено */
-    border-radius: 6px; /* Радіус для самого зображення */
-    /* box-shadow: 0 4px 8px rgba(0,0,0,0.1); Можна прибрати, якщо є тінь у контейнера */
-    object-fit: contain; /* Щоб зображення повністю входило */
+    max-height: 500px; 
+    border-radius: 6px; 
+    object-fit: contain; 
 }
 
 .lot-bid {
-    background-color: #e9ecef; /* Світліший фон */
+    background-color: #e9ecef;
     padding: 25px;
     border-radius: 8px;
     text-align: center;
-    margin-top: 30px; /* Відступ зверху */
+    margin-top: 30px; 
 }
 .lot-bid .current-price {
-    font-size: 1.6rem; /* Збільшено */
+    font-size: 1.6rem;
     font-weight: bold;
     color: navy;
     margin-bottom: 20px;
@@ -482,16 +435,15 @@ header .profile button:hover {
     justify-content: center;
     align-items: center;
     margin-bottom: 25px;
-    gap: 10px; /* Простір між кнопками та інпутом */
+    gap: 10px; 
 }
 .bid-controls input[type="number"] {
-    width: 140px; /* Трохи ширше */
-    padding: 12px; /* Збільшено padding */
+    width: 140px; 
+    padding: 12px; 
     text-align: center;
     font-size: 1.25rem;
     border: 1px solid #ced4da;
     border-radius: 5px;
-    /* margin: 0 10px; Замінено на gap */
     -moz-appearance: textfield;
 }
 .bid-controls input[type="number"]::-webkit-outer-spin-button,
@@ -499,38 +451,38 @@ header .profile button:hover {
     -webkit-appearance: none;
     margin: 0;
 }
-.bid-controls .btn { /* Стилі для кнопок "+" та "-" */
+.bid-controls .btn { 
     padding: 12px 18px;
     font-size: 1.25rem;
-    background-color: #6c757d; /* Сірий */
+    background-color: #6c757d;
     color: white;
     border: none;
-    border-radius: 5px; /* Однаковий радіус */
+    border-radius: 5px;
     cursor: pointer;
     min-width: 45px;
-    line-height: 1; /* Для кращого вертикального центрування тексту */
+    line-height: 1;
     transition: background-color 0.2s ease;
 }
 .bid-controls .btn:hover {
     background-color: #5a6268;
 }
-.bid-btn { /* Кнопка "Зробити ставку" */
-    background-color: #007bff; /* Яскраво-синій */
+.bid-btn { 
+    background-color: #007bff;
     color: white;
-    padding: 12px 35px; /* Збільшено padding */
+    padding: 12px 35px; 
     font-size: 1.2rem;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    text-transform: uppercase; /* Великі літери */
+    text-transform: uppercase; 
     font-weight: bold;
 }
 .bid-btn:hover {
     background-color: #0056b3;
 }
 .bid-btn:disabled {
-    background-color: #adb5bd; /* Світліший сірий для неактивної */
+    background-color: #adb5bd; 
     cursor: not-allowed;
 }
 
