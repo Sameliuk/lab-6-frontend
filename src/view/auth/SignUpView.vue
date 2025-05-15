@@ -14,10 +14,12 @@ const currentUser = reactive({
 });
 
 const registrationErrors = ref([]);
+const isLoading = ref(false);
 
 const handleSubmit = async (event) => {
     event.preventDefault();
     registrationErrors.value = []; 
+    isLoading.value = true;
 
     try {
         const res = await fetch('http://localhost:3000/users/signUp', {
@@ -40,7 +42,6 @@ const handleSubmit = async (event) => {
                 userStore.setUser(data.user); 
                 router.push('/users/profile');
             } else {
-
                 registrationErrors.value.push('Не вдалося отримати дані користувача після реєстрації.');
                 console.error('An error occurred during registration: No user data in response', data);
             }
@@ -55,11 +56,12 @@ const handleSubmit = async (event) => {
             }
             registrationErrors.value.push(errorMsg);
             console.error('An error occurred during registration:', errorMsg);
-
         }
     } catch (error) {
         console.error('Error sending request (signUp):', error);
         registrationErrors.value.push('Помилка з\'єднання з сервером при реєстрації.');
+    } finally {
+        isLoading.value = false;
     }
 };
 </script>
@@ -67,6 +69,14 @@ const handleSubmit = async (event) => {
 <template>
     <div class="auth-container">
         <h2>Реєстрація</h2>
+        
+        <div v-if="registrationErrors.length" class="error-message">
+            <ul>
+                <li v-for="(error, index) in registrationErrors" :key="index">
+                    {{ error }}
+                </li>
+            </ul>
+        </div>
 
         <form @submit="handleSubmit">
             <div class="form-group">
@@ -77,6 +87,7 @@ const handleSubmit = async (event) => {
                     v-model="currentUser.fname"
                     placeholder="Введіть ім'я"
                     required
+                    :disabled="isLoading"
                 />
             </div>
             <div class="form-group">
@@ -87,6 +98,7 @@ const handleSubmit = async (event) => {
                     v-model="currentUser.sname"
                     placeholder="Введіть прізвище"
                     required
+                    :disabled="isLoading"
                 />
             </div>
             <div class="form-group">
@@ -97,15 +109,23 @@ const handleSubmit = async (event) => {
                     v-model="currentUser.password"
                     placeholder="Введіть пароль"
                     required
+                    :disabled="isLoading"
                 />
             </div>
-            <button type="submit" class="btn-primary">Зареєструватися</button>
+            <button type="submit" class="btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Реєстрація...' : 'Зареєструватися' }}
+            </button>
         </form>
 
-        <p>Вже маєте акаунт? <a href="/users/signIn">Увійти</a></p>
+        <p>Вже маєте акаунт? <RouterLink to="/users/signIn">Увійти</RouterLink></p>
     </div>
 </template>
 
 <style scoped>
 @import '@/styles/authPage.css';
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
 </style>

@@ -1,28 +1,62 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore, authEventBus } from '@/stores/userStore';
 
 const userStore = useUserStore();
 const router = useRouter();
 
-// Отримуємо дані з localStorage та парсимо їх
-const userData = localStorage.getItem('user');
-const parsedUser = userData ? JSON.parse(userData) : null;
+// Create a reactive reference for user data
+const user = ref(null);
 
-// Перевірка наявності ім'я
+// Function to update user data
+const updateUserData = () => {
+    const userData = localStorage.getItem('user');
+    user.value = userData ? JSON.parse(userData) : null;
+};
+
+// Initialize user data
+onMounted(() => {
+    updateUserData();
+    
+    // Listen for auth state changes
+    authEventBus.on('auth-change', () => {
+        updateUserData();
+    });
+});
+
+// Computed properties based on reactive user data
 const accountRoute = computed(() =>
-    parsedUser && parsedUser.fname ? '/users/profile' : '/users/signIn'
+    user.value && user.value.fname ? '/users/profile' : '/users/signIn'
 );
 
 const accountLabel = computed(() =>
-    parsedUser && parsedUser.fname ? parsedUser.fname : 'Увійти'
+    user.value && user.value.fname ? user.value.fname : 'Увійти'
 );
 
-function logout() {
-    userStore.clearUser();
-    localStorage.removeItem('user');
-    router.push('/users/signIn');
+async function logout() {
+    try {
+        // Call the logout API endpoint
+        const response = await fetch('http://localhost:3000/users/logout', {
+            method: 'POST',
+            credentials: 'include',
+        });
+        
+        if (response.ok) {
+            userStore.clearUser();
+            router.push('/users/signIn');
+        } else {
+            console.error('Logout failed:', response.statusText);
+            // Still clear the local state even if server logout fails
+            userStore.clearUser();
+            router.push('/users/signIn');
+        }
+    } catch (error) {
+        console.error('Error during logout:', error);
+        // Still clear the local state even if server logout fails
+        userStore.clearUser();
+        router.push('/users/signIn');
+    }
 }
 </script>
 
@@ -33,7 +67,7 @@ function logout() {
         <div class="profile">
             <RouterLink :to="accountRoute">{{ accountLabel }}</RouterLink>
             <button
-                v-if="parsedUser && parsedUser.fname"
+                v-if="user && user.fname"
                 @click="logout"
                 class="logout-btn"
             >

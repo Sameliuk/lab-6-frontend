@@ -78,6 +78,52 @@
           </button>
         </form>
       </div>
+      
+      <!-- Edit Lot Modal -->
+      <div v-if="showEditModal" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Редагувати лот</h2>
+          <form @submit.prevent="handleEditLot">
+            <div class="form-group">
+              <label for="editLotTitle">Назва лоту:</label>
+              <input type="text" id="editLotTitle" v-model="editingLot.title" required>
+            </div>
+            <div class="form-group">
+              <label for="editLotDescription">Опис:</label>
+              <textarea id="editLotDescription" v-model="editingLot.description" required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="editLotStartPrice">Початкова ціна:</label>
+              <input type="number" id="editLotStartPrice" v-model.number="editingLot.startPrice" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="editLotStartTime">Дата початку:</label>
+              <input type="date" id="editLotStartTime" v-model="editingLot.startTime" required>
+            </div>
+            <div class="form-group">
+              <label for="editLotEndTime">Дата завершення:</label>
+              <input type="date" id="editLotEndTime" v-model="editingLot.endTime" required>
+            </div>
+            <div class="form-group">
+              <label for="editLotStatus">Статус:</label>
+              <select id="editLotStatus" v-model="editingLot.status">
+                <option value="true">Активний</option>
+                <option value="false">Неактивний</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editLotImage">URL зображення (необов'язково):</label>
+              <input type="text" id="editLotImage" v-model="editingLot.image">
+            </div>
+            <div class="modal-buttons">
+              <button type="submit" class="save-button" :disabled="isEditing">
+                {{ isEditing ? 'Збереження...' : 'Зберегти зміни' }}
+              </button>
+              <button type="button" class="cancel-button" @click="closeEditModal">Скасувати</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -103,6 +149,20 @@ const newLot = ref({
   image: ''
 });
 
+const editingLot = ref({
+  id: null,
+  title: '',
+  description: '',
+  startPrice: null,
+  status: true,
+  startTime: '',
+  endTime: '',
+  image: ''
+});
+
+const showEditModal = ref(false);
+const isEditing = ref(false);
+
 function getTodayDate() {
   const today = new Date();
   return today.toISOString().split('T')[0];
@@ -127,7 +187,7 @@ async function fetchUserLots() {
     return;
   }
   try {
-    const response = await fetch(`${apiBaseUrl}/lots`, { 
+    const response = await fetch(`${apiBaseUrl}/lots/user/${userStore.userId}`, { 
         method: 'GET',
         credentials: 'include' 
     });
@@ -135,18 +195,18 @@ async function fetchUserLots() {
       const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів (сервер не повернув JSON)` }));
       throw new Error(errorData.message || `Помилка ${response.status} при завантаженні лотів`);
     }
-    const fetchedObject = await response.json();
+    const fetchedData = await response.json();
 
-    console.log('[UserProfileView] Відповідь від /lots (об\'єкт з бекенду):', fetchedObject);
+    console.log('[UserProfileView] Відповідь від /lots/user (дані з бекенду):', fetchedData);
 
-    if (fetchedObject && typeof fetchedObject === 'object' && Array.isArray(fetchedObject.data)) {
-      lots.value = fetchedObject.data.map(lot => ({
+    if (fetchedData && Array.isArray(fetchedData)) {
+      lots.value = fetchedData.map(lot => ({
         ...lot,
         status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
       }));
       console.log('[UserProfileView] Лоти успішно завантажені та оброблені:', lots.value);
     } else {
-      console.error('[UserProfileView] Отримана відповідь не містить очікуваного масиву лотів у властивості "data":', fetchedObject);
+      console.error('[UserProfileView] Отримана відповідь не містить очікуваного масиву лотів:', fetchedData);
       throw new Error('Некоректний формат даних лотів від сервера.');
     }
   } catch (err) {
@@ -309,8 +369,84 @@ async function handleCreateLot() {
 }
 
 function editLot(lot) {
-  alert(`Редагування лоту: ${lot.title} (ID: ${lot.id}) - функціонал ще не реалізовано`);
+  editingLot.value = {
+    id: lot.id,
+    title: lot.title,
+    description: lot.description,
+    startPrice: lot.start_price,
+    status: lot.status,
+    startTime: lot.start_time ? new Date(lot.start_time).toISOString().split('T')[0] : getTodayDate(),
+    endTime: lot.end_time ? new Date(lot.end_time).toISOString().split('T')[0] : getTomorrowDate(),
+    image: lot.image || ''
+  };
+  
+  showEditModal.value = true;
+}
 
+async function handleEditLot() {
+  if (!editingLot.value.id) return;
+  
+  try {
+    isEditing.value = true;
+    error.value = null;
+    
+    const payload = {
+      title: editingLot.value.title.trim(),
+      description: editingLot.value.description.trim(),
+      startPrice: parseFloat(editingLot.value.startPrice),
+      status: editingLot.value.status,
+      startTime: editingLot.value.startTime,
+      endTime: editingLot.value.endTime,
+      image: editingLot.value.image || null
+    };
+    
+    const response = await fetch(`${apiBaseUrl}/lots/${editingLot.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ 
+        error: `Помилка оновлення лоту. Статус: ${response.status}. Сервер не повернув JSON.` 
+      }));
+      throw new Error(errorData.message || errorData.error || `Невідома помилка оновлення лоту (статус ${response.status})`);
+    }
+    
+    const updatedLot = await response.json();
+    console.log("[UserProfileView] Лот успішно оновлено:", updatedLot);
+    
+    const index = lots.value.findIndex(l => l.id === updatedLot.id);
+    if (index !== -1) {
+      lots.value[index] = {
+        ...updatedLot,
+        status: typeof updatedLot.status === 'string' ? updatedLot.status.toLowerCase() === 'true' : Boolean(updatedLot.status)
+      };
+    }
+    
+    showEditModal.value = false;
+  } catch (err) {
+    console.error('[UserProfileView] Помилка оновлення лоту:', err);
+    error.value = err.message;
+    alert(`Помилка оновлення лоту: ${err.message}`);
+  } finally {
+    isEditing.value = false;
+  }
+}
+
+function closeEditModal() {
+  showEditModal.value = false;
+  editingLot.value = {
+    id: null,
+    title: '',
+    description: '',
+    startPrice: null,
+    startTime: getTodayDate(),
+    endTime: getTomorrowDate(),
+    status: true,
+    image: ''
+  };
 }
 
 onMounted(() => {
@@ -647,6 +783,68 @@ a.logo:hover {
 
 body.modal-open { 
     overflow: hidden;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.save-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.save-button:hover {
+    background-color: #45a049;
+}
+
+.save-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.cancel-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-button:hover {
+    background-color: #d32f2f;
 }
 
 </style>

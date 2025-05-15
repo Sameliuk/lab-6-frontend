@@ -11,18 +11,23 @@ const form = ref({
     password: '',
 });
 const errors = ref([]);
+const isLoading = ref(false);
 
 async function login(e) {
     e.preventDefault();
     errors.value = []; 
+    isLoading.value = true;
 
     if (!form.value.fname) {
         errors.value.push("Ім'я є обов'язковим");
     }
     if (!form.value.password) {
-        errors.value.push('Пароль є обов’язковим');
+        errors.value.push("Пароль є обов'язковим");
     }
-    if (errors.value.length > 0) return;
+    if (errors.value.length > 0) {
+        isLoading.value = false;
+        return;
+    }
 
     try {
         const res = await fetch('http://localhost:3000/users/signIn', {
@@ -41,17 +46,14 @@ async function login(e) {
                 userStore.setUser(data.user); 
                 router.push('/users/profile');
             } else {
-
                 errors.value.push('Не вдалося отримати дані користувача з відповіді сервера.');
             }
         } else { 
             let errorMsg = 'Неправильні дані для входу'; 
             try {
                 const errorData = await res.json();
-
                 errorMsg = errorData.error || errorData.message || errorMsg;
             } catch (parseError) {
-
                 console.error('Помилка розбору JSON відповіді помилки (вхід):', parseError);
                 errorMsg = `Помилка сервера: ${res.status} ${res.statusText}`;
             }
@@ -60,6 +62,8 @@ async function login(e) {
     } catch (error) {
         console.error('Помилка з\'єднання або запиту (вхід):', error);
         errors.value.push('Помилка з\'єднання з сервером. Спробуйте пізніше.');
+    } finally {
+        isLoading.value = false;
     }
 }
 </script>
@@ -85,6 +89,7 @@ async function login(e) {
                     name="fname"
                     placeholder="Введіть ім'я"
                     required
+                    :disabled="isLoading"
                 />
             </div>
             <div class="form-group">
@@ -96,9 +101,12 @@ async function login(e) {
                     name="password"
                     placeholder="Введіть пароль"
                     required
+                    :disabled="isLoading"
                 />
             </div>
-            <button type="submit" class="btn-primary">Увійти</button>
+            <button type="submit" class="btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Вхід...' : 'Увійти' }}
+            </button>
         </form>
 
         <p>

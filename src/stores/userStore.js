@@ -1,5 +1,21 @@
 import { defineStore } from 'pinia';
 
+// Create a simple event bus for auth state changes
+export const authEventBus = {
+    listeners: {},
+    on(event, callback) {
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+        this.listeners[event].push(callback);
+    },
+    emit(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(callback => callback(data));
+        }
+    }
+};
+
 export const useUserStore = defineStore('userStore', {
     state: () => ({
         userId: null, // Буде зберігати значення user.id
@@ -22,6 +38,9 @@ export const useUserStore = defineStore('userStore', {
                 this.sname = userData.sname || '';
                 this.lots = userData.lots || [];   // Якщо lots можуть бути відсутні
                 console.log('User set in store:', this.$state);
+                
+                // Emit auth state change event
+                authEventBus.emit('auth-change', { isLoggedIn: true, userData });
             } else {
                 console.warn('setUser_ACTION: Спроба встановити невалідні дані користувача:', userData);
                 // Можливо, тут варто викликати clearUser, якщо дані невалідні
@@ -35,6 +54,9 @@ export const useUserStore = defineStore('userStore', {
             this.lots = [];
             localStorage.removeItem('user');
             console.log('User cleared from store and localStorage');
+            
+            // Emit auth state change event
+            authEventBus.emit('auth-change', { isLoggedIn: false });
         },
         loadUserFromLocalStorage() {
             const userJSON = localStorage.getItem('user');
