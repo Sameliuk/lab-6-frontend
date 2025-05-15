@@ -1,28 +1,23 @@
 <script setup>
 import { ref } from 'vue'; 
-import { reactive } from 'vue'; // Ви використовували reactive, можна і ref
-import { useRouter } from 'vue-router'; // Імпортуємо useRouter
+import { reactive } from 'vue'; 
+import { useRouter } from 'vue-router'; 
 import { useUserStore } from '@/stores/userStore';
 
-const router = useRouter(); // Ініціалізуємо роутер
+const router = useRouter(); 
 const userStore = useUserStore();
 
-// userStore.clearUser(); // Викликається при кожному завантаженні компонента реєстрації
-
-const currentUser = reactive({ // або ref, якщо вам так зручніше
+const currentUser = reactive({ 
     password: '',
     fname: '',
     sname: '',
 });
-// Додамо масив для помилок реєстрації, якщо потрібно їх показувати в UI
-const registrationErrors = ref([]);
 
+const registrationErrors = ref([]);
 
 const handleSubmit = async (event) => {
     event.preventDefault();
-    registrationErrors.value = []; // Очищаємо помилки
-
-    // Тут можна додати клієнтську валідацію для полів currentUser, якщо потрібно
+    registrationErrors.value = []; 
 
     try {
         const res = await fetch('http://localhost:3000/users/signUp', {
@@ -35,21 +30,21 @@ const handleSubmit = async (event) => {
                 sname: currentUser.sname,
                 password: currentUser.password,
             }),
-            credentials: 'include' // <--- ДОДАНО ЦЕЙ РЯДОК
+            credentials: 'include' 
         });
 
-        if (res.ok) { // Статус 200-299
-            const data = await res.json(); // Бекенд повертає { user: { id: ..., fname: ..., ...} }
-            if (data.user) { // Перевіряємо, чи є об'єкт user
-                localStorage.setItem('user', JSON.stringify(data.user)); // Зберігаємо сам об'єкт користувача
-                userStore.setUser(data.user); // Передаємо об'єкт data.user (який має id, fname)
+        if (res.ok) { 
+            const data = await res.json(); 
+            if (data.user) { 
+                localStorage.setItem('user', JSON.stringify(data.user)); 
+                userStore.setUser(data.user); 
                 router.push('/users/profile');
             } else {
-                // Якщо res.ok, але data.user немає
+
                 registrationErrors.value.push('Не вдалося отримати дані користувача після реєстрації.');
                 console.error('An error occurred during registration: No user data in response', data);
             }
-        } else { // Статус не ОК
+        } else { 
             let errorMsg = 'Помилка під час реєстрації';
             try {
                 const errorData = await res.json();
@@ -60,7 +55,7 @@ const handleSubmit = async (event) => {
             }
             registrationErrors.value.push(errorMsg);
             console.error('An error occurred during registration:', errorMsg);
-            // Тут також варто відображати registrationErrors.value в шаблоні
+
         }
     } catch (error) {
         console.error('Error sending request (signUp):', error);

@@ -85,23 +85,21 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useUserStore } from '@/stores/userStore';
-// import { useRouter } from 'vue-router'; // Розкоментуйте, якщо будете використовувати router для навігації, наприклад, в editLot
 
-// const router = useRouter(); // Ініціалізуйте, якщо потрібно для editLot
 const userStore = useUserStore();
 
 const lots = ref([]);
-const error = ref(null); // Для відображення загальних помилок на сторінці
+const error = ref(null); 
 const isLoadingLots = ref(true);
 const isCreatingLot = ref(false);
 
 const newLot = ref({
   title: '',
   description: '',
-  startPrice: null, // Важливо: початкове значення null
+  startPrice: null, 
   startTime: getTodayDate(),
   endTime: getTomorrowDate(),
-  status: true, // За замовчуванням лот активний (булеве значення)
+  status: true, 
   image: ''
 });
 
@@ -129,9 +127,9 @@ async function fetchUserLots() {
     return;
   }
   try {
-    const response = await fetch(`${apiBaseUrl}/lots`, { // Припускаємо, що цей ендпоінт повертає лоти поточного користувача або всі лоти, якщо потрібна фільтрація на бекенді
+    const response = await fetch(`${apiBaseUrl}/lots`, { 
         method: 'GET',
-        credentials: 'include' // Додано для сесій
+        credentials: 'include' 
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів (сервер не повернув JSON)` }));
@@ -173,33 +171,30 @@ function formatDate(dateString) {
 
 async function updateLotStatus(lotToUpdate) {
   error.value = null;
-  const newStatusForBackend = lotToUpdate.status; // v-model вже оновив lot.status до нового значення
+  const newStatusForBackend = lotToUpdate.status; 
 
   console.log(`[UserProfileView] Спроба оновити статус для лоту ID ${lotToUpdate.id} на: ${newStatusForBackend}`);
   try {
     const response = await fetch(`${apiBaseUrl}/lots/${lotToUpdate.id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newStatus: String(newStatusForBackend) }), // Надсилаємо рядок "true" або "false"
-      credentials: 'include' // Додано для сесій
+      body: JSON.stringify({ newStatus: String(newStatusForBackend) }), 
+      credentials: 'include' 
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Помилка оновлення статусу (сервер не повернув JSON)' }));
       throw new Error(errorData.message || 'Помилка оновлення статусу');
     }
     console.log(`[UserProfileView] Статус для лоту ID ${lotToUpdate.id} успішно оновлено на бекенді.`);
-    // Якщо бекенд повертає оновлений лот, можна оновити його в `lots.value`
-    // const updatedLotFromServer = await response.json();
-    // const lotIndex = lots.value.findIndex(l => l.id === updatedLotFromServer.id);
-    // if (lotIndex !== -1) lots.value.splice(lotIndex, 1, updatedLotFromServer);
+
   } catch (err) {
     console.error('[UserProfileView] Помилка оновлення статусу:', err);
     error.value = err.message;
     alert(`Помилка оновлення статусу: ${err.message}`);
-    // Відкат зміни статусу в UI у разі помилки
+
     const lotInArray = lots.value.find(l => l.id === lotToUpdate.id);
     if (lotInArray) {
-      lotInArray.status = !newStatusForBackend; // Повертаємо до попереднього значення
+      lotInArray.status = !newStatusForBackend; 
     }
   }
 }
@@ -211,7 +206,7 @@ async function deleteLot(lotId) {
     try {
       const response = await fetch(`${apiBaseUrl}/lots/${lotId}`, {
         method: 'DELETE',
-        credentials: 'include' // Додано для сесій
+        credentials: 'include' 
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Помилка видалення лоту (сервер не повернув JSON)' }));
@@ -235,7 +230,6 @@ async function handleCreateLot() {
     return;
   }
 
-  // --- Покращена клієнтська валідація ---
   if (!newLot.value.title.trim()) {
     alert('Назва лоту є обов\'язковою.'); return;
   }
@@ -254,53 +248,48 @@ async function handleCreateLot() {
   if (new Date(newLot.value.endTime) <= new Date(newLot.value.startTime)) {
     alert('Дата завершення має бути пізнішою за дату початку.'); return;
   }
-  // --- Кінець валідації ---
 
   isCreatingLot.value = true;
   error.value = null;
-
 
   const payload = {
     userId: userStore.userId,
     title: newLot.value.title.trim(),
     description: newLot.value.description.trim(),
-    startPrice: parseFloat(newLot.value.startPrice),    // <--- ЗМІНЕНО на startPrice (camelCase)
-    currentPrice: parseFloat(newLot.value.startPrice),  // <--- ЗМІНЕНО на currentPrice (camelCase)
-    status: newLot.value.status, // newLot.status вже має бути булевим з вашого select
-    startTime: newLot.value.startTime,                   // <--- ЗМІНЕНО на startTime (camelCase)
-    endTime: newLot.value.endTime,                     // <--- ЗМІНЕНО на endTime (camelCase)
+    startPrice: parseFloat(newLot.value.startPrice),    
+    currentPrice: parseFloat(newLot.value.startPrice),  
+    status: newLot.value.status, 
+    startTime: newLot.value.startTime,                   
+    endTime: newLot.value.endTime,                     
     image: newLot.value.image || null
   };
 
-  // Цей console.log є КЛЮЧОВИМ для діагностики помилки "Не всі обов'язкові поля заповнені"
   console.log("[UserProfileView] Дані для створення лоту (payload):", JSON.stringify(payload, null, 2));
 
   try {
-    const response = await fetch(`${apiBaseUrl}/lots/create`, { // Перевірте, чи URL /lots/create правильний
+    const response = await fetch(`${apiBaseUrl}/lots/create`, { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      credentials: 'include' // Додано для сесій
+      credentials: 'include' 
     });
 
-    if (!response.ok) { // Якщо статус не 2xx (наприклад, 400, 401, 500)
+    if (!response.ok) { 
       const errorData = await response.json().catch(() => ({ 
         error: `Помилка створення лоту. Статус: ${response.status}. Сервер не повернув JSON.` 
       }));
-      // errorData.message з вашого бекенду (якщо є), або errorData.error, або запасне повідомлення
+
       throw new Error(errorData.message || errorData.error || `Невідома помилка створення лоту (статус ${response.status})`);
     }
 
-    const createdLot = await response.json(); // Очікуємо, що бекенд поверне створений лот
+    const createdLot = await response.json(); 
     console.log("[UserProfileView] Лот успішно створено на бекенді:", createdLot);
-    
-    // Додаємо новий лот на початок списку і коректно обробляємо його статус
+
     lots.value.unshift({
         ...createdLot,
         status: typeof createdLot.status === 'string' ? createdLot.status.toLowerCase() === 'true' : Boolean(createdLot.status)
     });
-    
-    // Очищаємо форму
+
     newLot.value = {
       title: '',
       description: '',
@@ -312,8 +301,8 @@ async function handleCreateLot() {
     };
   } catch (err) {
     console.error('[UserProfileView] Помилка створення лоту (в catch блоці):', err);
-    error.value = err.message; // Відображаємо помилку користувачу через <div v-if="error"...>
-    alert(`Помилка створення лоту: ${err.message}`); // Додатково показуємо alert
+    error.value = err.message; 
+    alert(`Помилка створення лоту: ${err.message}`); 
   } finally {
     isCreatingLot.value = false;
   }
@@ -321,7 +310,7 @@ async function handleCreateLot() {
 
 function editLot(lot) {
   alert(`Редагування лоту: ${lot.title} (ID: ${lot.id}) - функціонал ще не реалізовано`);
-  // Для реалізації: router.push(`/edit-lot/${lot.id}`); або відкриття модального вікна
+
 }
 
 onMounted(() => {
@@ -331,175 +320,279 @@ onMounted(() => {
   } else {
     console.warn('[UserProfileView] Користувач не авторизований при завантаженні профілю. Лоти не завантажено.');
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
-    isLoadingLots.value = false; // Зупиняємо індикатор завантаження, бо запиту не буде
+    isLoadingLots.value = false; 
   }
 });
 </script>
 
 <style scoped>
 
-.user-profile-page {
-  font-family: Arial, sans-serif;
+/* Загальні стилі */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #fffefc;
+    color: navy;
 }
 
+/* Контейнер для вмісту */
 .container {
-  max-width: 960px;
-  margin: 20px auto; 
-  padding: 0 15px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-.error-message {
-  color: #721c24;
-  background-color: #f8d7da;
-  border-color: #f5c6cb;
-  padding: .75rem 1.25rem;
-  margin-bottom: 1rem;
-  border: 1px solid transparent;
-  border-radius: .25rem;
+/* Секція для створення лоту і лоти */
+.create-lot-section {
+    background: #f8f9fa;
+    border: 1px solid rgb(238, 238, 239);
+    padding: 25px;
+    border-radius: 10px;
+    margin: 30px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#lots-container {
+    padding: 25px;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .title {
-  margin-bottom: 20px;
-  font-size: 1.75rem;
-  text-align: center; 
+    font-size: 30px;
+    margin-bottom: 5px;
+    color: navy;
+    font-weight: bold;
+    text-align: center;
 }
 
-#lots-container .lot {
-  border: 1px solid #ddd;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 5px;
-  background-color: #fff;
+.lot {
+    background-color: #f8f9fa;
+    border: 1px solid rgb(238, 238, 239);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px;
+    width: 30%;
+    box-sizing: border-box;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.lot:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .lot h3 {
-  margin-top: 0;
-  margin-bottom: .5rem;
-  font-size: 1.5rem;
+    font-size: 20px;
+    margin-bottom: 10px;
 }
 
 .lot p {
-  margin-bottom: .5rem;
-  line-height: 1.6;
-}
-.lot .desc {
-    color: #555;
+    font-size: 16px;
+    margin: 5px 0;
+    color: #7a80a2;
+    word-wrap: break-word;
 }
 
 .status-select {
-  padding: .375rem .75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: .25rem;
-  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-right: 10px;
 }
 
 .status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-left: 8px;
-  vertical-align: middle;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: inline-block;
 }
 
 .status-indicator.active {
-  background-color: #28a745; 
+    background-color: #4caf50;
+    color: white;
 }
 
 .status-indicator.inactive {
-  background-color: #dc3545; 
-}
-
-.lot-actions {
-  margin-top: 15px;
-}
-
-.lot-actions button {
-  margin-right: 10px;
-  padding: .375rem .75rem;
-  font-size: 1rem;
-  border-radius: .25rem;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.edit-lot-button {
-  color: #212529;
-  background-color: #ffc107;
-  border-color: #ffc107;
-}
-
-.edit-lot-button:disabled,
-.edit-lot-button.disabled-button {
-  color: #6c757d;
-  background-color: #e9ecef;
-  border-color: #ced4da;
-  cursor: not-allowed;
+    background-color: #f44336;
+    color: white;
 }
 
 .delete-lot-button {
-  color: #fff;
-  background-color: #dc3545;
-  border-color: #dc3545;
+    background-color: rgb(120, 120, 233);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-.create-lot-section {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
+.delete-lot-button:hover {
+    background-color: #6c6ce5;
 }
 
-.create-lot-section h2 {
-  margin-bottom: 20px;
-  text-align: center; 
-}
-
+/* Стилі для форми */
 .form-group {
-  margin-bottom: 1rem;
+    margin-bottom: 20px;
 }
 
 .form-group label {
-  display: inline-block; 
-  margin-bottom: .5rem;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: navy;
 }
 
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group input[type="date"],
+.form-group input[type='text'],
 .form-group textarea,
-.form-group select {
-  display: block;
-  width: 100%;
-  padding: .375rem .75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: .25rem;
-  box-sizing: border-box;
+.form-group input[type='number'] {
+    width: 98%;
+    padding: 10px;
+    border: 1px solid navy;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
 }
 
-.button {
-  color: #fff;
-  background-color: #007bff;
-  border-color: #007bff;
-  padding: .5rem 1rem;
-  font-size: 1.25rem;
-  line-height: 1.5;
-  border-radius: .3rem;
-  cursor: pointer;
-  width: 100%; 
+.form-group input[type='text']:focus,
+.form-group input[type='date']:focus,
+.form-group textarea:focus,
+.form-group input[type='number']:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: rgb(120, 120, 233);
+    box-shadow: 0 0 0 2px rgba(120, 120, 233, 0.2);
 }
-.button:disabled {
-  background-color: #6c757d;
-  border-color: #6c757d;
-  cursor: not-allowed;
+
+/* Стилі для селекту */
+select,
+.form-group input[type='date'] {
+    border: 1px solid navy;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+    width: 150px;
+    padding: 10px;
+    color: navy;
+    cursor: pointer;
 }
+
+select option {
+    padding: 10px;
+    font-size: 16px;
+}
+
+/* Стилі для кнопки */
+button {
+    background-color: rgb(120, 120, 233);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #6c6ce5;
+}
+.disabled-button {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fffefc;
+    padding: 15px 20px;
+    border-bottom: 2px solid #ccc;
+}
+
+a.logo {
+    text-decoration: none;
+    color: navy;
+    display: inline-block;
+}
+
+a.logo:hover {
+    color: #0000b3;
+}
+
+.logo {
+    margin-left: 25px;
+    font-size: 50px;
+    font-weight: bold;
+}
+
+.profile a {
+    text-decoration: none;
+    font-weight: bold;
+    margin: 15px;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+.modal-content {
+    background-color: white;
+    position: relative;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 600px;
+    top: 50px;
+}
+
+.close-modal {
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: #f44336;
+}
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Кнопка редагування */
+.edit-lot-button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin-right: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.edit-lot-button:hover {
+    background-color: #45a049;
+}
+
+/* Стилі для кнопок дій */
+.lot-actions {
+    display: flex;
+    margin-top: 10px;
+}
+
 </style>
