@@ -7,21 +7,22 @@
 
       <h2 class="title">Мої лоти</h2>
       <div id="lots-container">
-        <div v-if="isLoadingLots">
-          <p>Завантаження лотів...</p>
+        <div v-if="isLoadingLots" class="loading-placeholder">
+          <p>Завантаження ваших лотів...</p>
         </div>
         <div v-else-if="lots && lots.length > 0">
           <div v-for="lot in lots" :key="lot.id" class="lot">
             <h3>{{ lot.title }}</h3>
+            <img v-if="lot.image" :src="lot.image" :alt="lot.title" class="lot-image-preview">
             <p class="desc">{{ lot.description }}</p>
             <br>
-            <p>Початкова ціна: {{ lot.start_price }} ₴</p>
-            <p>Поточна ціна: {{ lot.current_price }} ₴</p>
+            <p><strong>Початкова ціна:</strong> {{ lot.start_price }} ₴</p>
+            <p><strong>Поточна ціна:</strong> {{ lot.current_price }} ₴</p>
             <br>
-            <p>Дата початку: {{ formatDate(lot.start_time) }}</p>
-            <p>Дата завершення: {{ formatDate(lot.end_time) }}</p>
+            <p><strong>Дата початку:</strong> {{ formatDate(lot.start_time) }}</p>
+            <p><strong>Дата завершення:</strong> {{ formatDate(lot.end_time) }}</p>
             <br>
-            <p>Статус:
+            <p class="status-paragraph"><strong>Статус:</strong>
               <select class="status-select" v-model="lot.status" @change="updateLotStatus(lot)">
                 <option :value="true">Активний</option>
                 <option :value="false">Неактивний</option>
@@ -35,7 +36,7 @@
           </div>
         </div>
         <div v-else>
-          <p>У вас ще немає створених лотів.</p>
+          <p>У вас ще немає створених лотів. Час створити перший!</p>
         </div>
       </div>
 
@@ -51,31 +52,32 @@
             <textarea id="newLotDescription" v-model="newLot.description" required></textarea>
           </div>
           <div class="form-group">
-            <label for="newLotStartPrice">Початкова ціна:</label>
+            <label for="newLotStartPrice">Початкова ціна (₴):</label>
             <input type="number" id="newLotStartPrice" v-model.number="newLot.startPrice" min="1" required>
           </div>
           <div class="form-group">
             <label for="newLotStartTime">Дата початку:</label>
-            <input type="date" id="newLotStartTime" v-model="newLot.startTime" required>
+            <input type="date" id="newLotStartTime" v-model="newLot.startTime" :min="getTodayDate()" required>
           </div>
           <div class="form-group">
             <label for="newLotEndTime">Дата завершення:</label>
-            <input type="date" id="newLotEndTime" v-model="newLot.endTime" required>
+            <input type="date" id="newLotEndTime" v-model="newLot.endTime" :min="newLot.startTime || getTodayDate()" required>
           </div>
           <div class="form-group">
             <label for="newLotStatus">Статус:</label>
             <select id="newLotStatus" v-model="newLot.status">
-              <option value="true">Активний</option>
-              <option value="false">Неактивний</option>
+              <option :value="true">Активний</option>
+              <option :value="false">Неактивний</option>
             </select>
           </div>
           <div class="form-group">
             <label for="newLotImage">URL зображення (необов'язково):</label>
-            <input type="text" id="newLotImage" v-model="newLot.image">
+            <input type="text" id="newLotImage" v-model="newLot.image" placeholder="https://example.com/image.jpg">
           </div>
-          <button type="submit" class="button" :disabled="isCreatingLot">
+          <button type="submit" class="button create-button" :disabled="isCreatingLot">
             {{ isCreatingLot ? 'Створення...' : 'Створити лот' }}
           </button>
+          <div v-if="createLotError" class="error-message form-error">{{ createLotError }}</div>
         </form>
       </div>
     </div>
@@ -85,21 +87,24 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useUserStore } from '@/stores/userStore';
+// import { useRouter } from 'vue-router'; // Розкоментуйте, якщо потрібен router для навігації
 
 const userStore = useUserStore();
+// const router = useRouter(); // Розкоментуйте, якщо потрібен router
 
 const lots = ref([]);
-const error = ref(null); 
+const error = ref(null);
 const isLoadingLots = ref(true);
 const isCreatingLot = ref(false);
+const createLotError = ref(null);
 
 const newLot = ref({
   title: '',
   description: '',
-  startPrice: null, 
+  startPrice: null,
   startTime: getTodayDate(),
   endTime: getTomorrowDate(),
-  status: true, 
+  status: true,
   image: ''
 });
 
@@ -114,43 +119,64 @@ function getTomorrowDate() {
   return tomorrow.toISOString().split('T')[0];
 }
 
-const apiBaseUrl = 'http://localhost:3000';
+const apiBaseUrl = 'http://localhost:3000'; // Або import.meta.env.VITE_API_BASE_URL || '';
 
 async function fetchUserLots() {
   isLoadingLots.value = true;
   error.value = null;
   console.log('[UserProfileView] Спроба завантажити лоти, userStore.userId:', userStore.userId);
+
   if (!userStore.userId) {
-    console.warn("[UserProfileView] UserID зі стору не доступний для завантаження лотів.");
+    console.warn("[UserProfileView] UserID зі стору не доступний. Лоти не будуть завантажені.");
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
     isLoadingLots.value = false;
+    // Якщо потрібно редірект на сторінку входу:
+    // if (router) router.push({ name: 'signIn' });
     return;
   }
+
   try {
-    const response = await fetch(`${apiBaseUrl}/lots`, { 
+    // --- ЗМІНЕНО URL ЗАПИТУ ---
+    // Використовуємо ендпоінт, що приймає ID користувача
+    const response = await fetch(`${apiBaseUrl}/lots/user/${userStore.userId}`, {
         method: 'GET',
-        credentials: 'include' 
+        credentials: 'include' // Важливо для передачі cookies/сесій, якщо ваша автентифікація їх використовує
     });
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: `Помилка ${response.status} при завантаженні лотів (сервер не повернув JSON)` }));
-      throw new Error(errorData.message || `Помилка ${response.status} при завантаженні лотів`);
+      let errorMessage = `Помилка ${response.status} при завантаженні лотів`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        // Залишаємо errorMessage як є, якщо тіло відповіді не JSON або порожнє
+      }
+      throw new Error(errorMessage);
     }
-    const fetchedObject = await response.json();
 
-    console.log('[UserProfileView] Відповідь від /lots (об\'єкт з бекенду):', fetchedObject);
+    const fetchedData = await response.json();
+    console.log('[UserProfileView] Відповідь від API для лотів користувача:', fetchedData);
 
-    if (fetchedObject && typeof fetchedObject === 'object' && Array.isArray(fetchedObject.data)) {
-      lots.value = fetchedObject.data.map(lot => ({
+    // Адаптуйте цю частину залежно від структури відповіді вашого API
+    if (Array.isArray(fetchedData)) { // Якщо API повертає масив лотів безпосередньо
+        lots.value = fetchedData.map(lot => ({
         ...lot,
         status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
-      }));
-      console.log('[UserProfileView] Лоти успішно завантажені та оброблені:', lots.value);
+        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); // Приклад сортування
+    } else if (fetchedData && typeof fetchedData === 'object' && Array.isArray(fetchedData.data)) {
+        // Якщо лоти знаходяться у властивості 'data'
+        lots.value = fetchedData.data.map(lot => ({
+        ...lot,
+        status: typeof lot.status === 'string' ? lot.status.toLowerCase() === 'true' : Boolean(lot.status)
+        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     } else {
-      console.error('[UserProfileView] Отримана відповідь не містить очікуваного масиву лотів у властивості "data":', fetchedObject);
-      throw new Error('Некоректний формат даних лотів від сервера.');
+        console.error('[UserProfileView] Отримана відповідь не містить очікуваного масиву лотів:', fetchedData);
+        throw new Error('Некоректний формат даних лотів від сервера.');
     }
+    console.log('[UserProfileView] Лоти користувача успішно завантажені та оброблені:', lots.value);
+
   } catch (err) {
-    console.error('[UserProfileView] Помилка завантаження лотів (в catch блоці):', err);
+    console.error('[UserProfileView] Помилка завантаження лотів користувача (в catch блоці):', err);
     error.value = err.message;
   } finally {
     isLoadingLots.value = false;
@@ -171,7 +197,8 @@ function formatDate(dateString) {
 
 async function updateLotStatus(lotToUpdate) {
   error.value = null;
-  const newStatusForBackend = lotToUpdate.status; 
+  const newStatusForBackend = lotToUpdate.status;
+  const originalStatusVisual = !lotToUpdate.status; 
 
   console.log(`[UserProfileView] Спроба оновити статус для лоту ID ${lotToUpdate.id} на: ${newStatusForBackend}`);
   try {
@@ -186,15 +213,25 @@ async function updateLotStatus(lotToUpdate) {
       throw new Error(errorData.message || 'Помилка оновлення статусу');
     }
     console.log(`[UserProfileView] Статус для лоту ID ${lotToUpdate.id} успішно оновлено на бекенді.`);
-
+     // Оновлення disabled стану кнопки редагування буде автоматичним, оскільки :disabled="lot.status"
+     // Якщо потрібно, можна перезавантажити дані лота з сервера, щоб отримати будь-які інші оновлення
+     // const updatedLotFromServer = await response.json();
+     // const index = lots.value.findIndex(l => l.id === lotToUpdate.id);
+     // if (index !== -1) {
+     //   lots.value[index] = {
+     //     ...lots.value[index], // Зберігаємо поточні дані
+     //     ...updatedLotFromServer, // Накладаємо оновлення з сервера
+     //     status: typeof updatedLotFromServer.status === 'string' ? updatedLotFromServer.status.toLowerCase() === 'true' : Boolean(updatedLotFromServer.status)
+     //   };
+     // }
   } catch (err) {
     console.error('[UserProfileView] Помилка оновлення статусу:', err);
     error.value = err.message;
     alert(`Помилка оновлення статусу: ${err.message}`);
-
+    
     const lotInArray = lots.value.find(l => l.id === lotToUpdate.id);
     if (lotInArray) {
-      lotInArray.status = !newStatusForBackend; 
+      lotInArray.status = originalStatusVisual; 
     }
   }
 }
@@ -225,45 +262,46 @@ async function deleteLot(lotId) {
 async function handleCreateLot() {
   console.log('[UserProfileView] Спроба створити новий лот. Поточний userStore.userId:', userStore.userId);
   if (!userStore.userId) {
-    error.value = "Необхідно авторизуватися для створення лоту.";
-    alert(error.value);
+    createLotError.value = "Необхідно авторизуватися для створення лоту.";
+    alert(createLotError.value);
     return;
   }
 
   if (!newLot.value.title.trim()) {
-    alert('Назва лоту є обов\'язковою.'); return;
+    createLotError.value = 'Назва лоту є обов\'язковою.'; alert(createLotError.value); return;
   }
   if (!newLot.value.description.trim()) {
-    alert('Опис лоту є обов\'язковим.'); return;
+    createLotError.value = 'Опис лоту є обов\'язковим.'; alert(createLotError.value); return;
   }
   if (newLot.value.startPrice === null || isNaN(parseFloat(newLot.value.startPrice)) || parseFloat(newLot.value.startPrice) <= 0) {
-    alert('Початкова ціна має бути числом більшим за нуль.'); return;
+    createLotError.value = 'Початкова ціна має бути числом більшим за нуль.'; alert(createLotError.value); return;
   }
   if (!newLot.value.startTime) {
-    alert('Дата початку є обов\'язковою.'); return;
+    createLotError.value = 'Дата початку є обов\'язковою.'; alert(createLotError.value); return;
   }
   if (!newLot.value.endTime) {
-    alert('Дата завершення є обов\'язковою.'); return;
+    createLotError.value = 'Дата завершення є обов\'язковою.'; alert(createLotError.value); return;
   }
   if (new Date(newLot.value.endTime) <= new Date(newLot.value.startTime)) {
-    alert('Дата завершення має бути пізнішою за дату початку.'); return;
+    createLotError.value = 'Дата завершення має бути пізнішою за дату початку.'; alert(createLotError.value); return;
   }
 
   isCreatingLot.value = true;
-  error.value = null;
+  error.value = null; 
+  createLotError.value = null; 
 
   const payload = {
-    userId: userStore.userId,
+    userId: userStore.userId, // Бекенд має перевірити, чи авторизований користувач = userId
     title: newLot.value.title.trim(),
     description: newLot.value.description.trim(),
-    startPrice: parseFloat(newLot.value.startPrice),    
-    currentPrice: parseFloat(newLot.value.startPrice),  
+    start_price: parseFloat(newLot.value.startPrice),
+    current_price: parseFloat(newLot.value.startPrice), 
     status: newLot.value.status, 
-    startTime: newLot.value.startTime,                   
-    endTime: newLot.value.endTime,                     
+    start_time: newLot.value.startTime,
+    end_time: newLot.value.endTime,
     image: newLot.value.image || null
   };
-
+  
   console.log("[UserProfileView] Дані для створення лоту (payload):", JSON.stringify(payload, null, 2));
 
   try {
@@ -278,18 +316,19 @@ async function handleCreateLot() {
       const errorData = await response.json().catch(() => ({ 
         error: `Помилка створення лоту. Статус: ${response.status}. Сервер не повернув JSON.` 
       }));
-
       throw new Error(errorData.message || errorData.error || `Невідома помилка створення лоту (статус ${response.status})`);
     }
 
     const createdLot = await response.json(); 
     console.log("[UserProfileView] Лот успішно створено на бекенді:", createdLot);
-
+    
+    // Оновлюємо список лотів, додаючи новий на початок
     lots.value.unshift({
         ...createdLot,
         status: typeof createdLot.status === 'string' ? createdLot.status.toLowerCase() === 'true' : Boolean(createdLot.status)
     });
-
+    
+    // Скидаємо форму
     newLot.value = {
       title: '',
       description: '',
@@ -301,8 +340,7 @@ async function handleCreateLot() {
     };
   } catch (err) {
     console.error('[UserProfileView] Помилка створення лоту (в catch блоці):', err);
-    error.value = err.message; 
-    alert(`Помилка створення лоту: ${err.message}`); 
+    createLotError.value = err.message; 
   } finally {
     isCreatingLot.value = false;
   }
@@ -310,7 +348,8 @@ async function handleCreateLot() {
 
 function editLot(lot) {
   alert(`Редагування лоту: ${lot.title} (ID: ${lot.id}) - функціонал ще не реалізовано`);
-
+  // Для реалізації:
+  // if (router) router.push({ name: 'EditLotView', params: { lotId: lot.id } }); // Якщо є такий маршрут
 }
 
 onMounted(() => {
@@ -321,186 +360,222 @@ onMounted(() => {
     console.warn('[UserProfileView] Користувач не авторизований при завантаженні профілю. Лоти не завантажено.');
     error.value = 'Будь ласка, увійдіть, щоб переглянути ваші лоти.';
     isLoadingLots.value = false; 
+    // if (router) router.push({ name: 'signIn' }); // Опціональний редірект
   }
 });
 </script>
 
 <style scoped>
+/* Стилі з EJS файлу userPage.css, адаптовані та покращені */
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #fffefc;
-    color: navy; 
+.user-profile-page {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
 }
 
 .container {
-    max-width: 1000px; 
-    margin: 20px auto; 
-    padding: 20px;
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fdfdfd;
+  border-radius: 8px;
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); */
 }
 
-.create-lot-section {
-    background: #f8f9fa; 
-    border: 1px solid #dee2e6; 
-    padding: 25px;
-    border-radius: 10px;
-    margin: 30px 0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); 
+.loading-placeholder p {
+    text-align: center;
+    font-size: 1.2em;
+    color: #666;
+    padding: 30px;
 }
 
-#lots-container {
-    display: flex;
-    flex-wrap: wrap;
-    
-    
-    
+.error-message {
+  color: #d8000c;
+  background-color: #ffdddd;
+  border: 1px solid #d8000c;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  text-align: center;
 }
-
-.lot {
-    background-color: #ffffff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 20px;
-    min-width: 1000px;
-    margin: 10px 0; 
-    width: calc(33.333% - 20px); 
-    
-    box-sizing: border-box;
-    
-    display: flex;
-    flex-direction: column;
-    transition: 0.35s;
+.error-message.form-error {
+  margin-top: 15px;
+  text-align: left;
 }
 
 .title {
-    font-size: 28px; 
-    margin-bottom: 25px; 
-    color: navy;
-    font-weight: bold;
-    text-align: center;
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: navy;
+  font-weight: 600;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid navy;
+  display: inline-block;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.lot:hover {
-    transform: translateY(-5px); 
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
+#lots-container {
+  margin-bottom: 40px;
 }
 
-.lot .lot-image-container { 
-    width: 100%;
-    
-    overflow: hidden;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+#lots-container .lot {
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  transition: box-shadow 0.3s ease;
+}
+#lots-container .lot:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-.lot .lot-image-container img {
-    max-width: 100%;
-    max-height: 180px; 
-    object-fit: cover; 
-    border-radius: 4px;
+
+.lot img.lot-image-preview {
+  max-width: 100%;
+  height: auto;
+  max-height: 250px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #eee;
 }
 
 .lot h3 {
-    font-size: 1.25rem; 
-    color: #343a40; 
-    margin-top: 0;
-    margin-bottom: 10px;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  color: #004a99;
+  font-weight: 600;
 }
 
 .lot p {
-    font-size: 0.95rem; 
-    margin-bottom: 8px; 
-    color: #5a6268; 
-    line-height: 1.5;
-    word-wrap: break-word;
-    flex-grow: 1; 
+  margin-bottom: .6rem;
+  line-height: 1.65;
+  color: #454545;
+}
+.lot p strong {
+  color: navy;
+  font-weight: 600;
 }
 
-.lot p.desc { 
-    color: #495057;
+.lot .desc {
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.status-paragraph {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .status-select {
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 0.9rem; 
-    margin-right: 10px;
-    border: 1px solid #ced4da;
-    background-color: #fff;
-    color: #495057;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  margin-left: 8px;
+  border: 1px solid #ced4da;
+  background-color: #fff;
+  color: #495057;
+  cursor: pointer;
 }
 
 .status-indicator {
-    
-    display: inline-block; 
-    width: 12px;
-    height: 12px;
-    border-radius: 50%; 
-    vertical-align: middle; 
-    
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-left: 12px;
+  vertical-align: middle;
 }
 
 .status-indicator.active {
-    background-color: #28a745; 
+  background-color: #28a745; 
+  box-shadow: 0 0 5px #28a745;
 }
 
 .status-indicator.inactive {
-    background-color: #dc3545; 
+  background-color: #dc3545; 
+  box-shadow: 0 0 5px #dc3545;
 }
 
 .lot-actions {
-    display: flex;
-    gap: 10px; 
-    margin-top: 15px; 
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
 }
 
-.lot-actions button { 
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    border-radius: 4px;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+.lot-actions button {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 .lot-actions button:active {
-    transform: scale(0.98); 
+  transform: scale(0.97);
 }
 
 .edit-lot-button {
-    background-color: #28a745; 
-    color: white;
+  background-color: #ffc107; 
+  color: #212529;
 }
-.edit-lot-button:hover {
-    background-color: #218838;
+.edit-lot-button:hover:not(:disabled) {
+  background-color: #e0a800;
 }
-.edit-lot-button:disabled,
-.edit-lot-button.disabled-button { 
-    opacity: 0.65;
-    cursor: not-allowed;
-    background-color: #6c757d; 
+.edit-lot-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #6c757d;
 }
 
 .delete-lot-button {
-    background-color: #dc3545; 
-    color: white;
+  background-color: #dc3545; 
+  color: white;
 }
 .delete-lot-button:hover {
-    background-color: #c82333;
+  background-color: #c82333;
+}
+
+.create-lot-section {
+  margin-top: 40px;
+  padding: 30px;
+  border: 1px solid #d1d9e6;
+  border-radius: 10px;
+  background-color: #f8f9fc;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.create-lot-section h2 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  text-align: center;
+  color: navy;
+  font-size: 1.8rem;
+  font-weight: 600;
 }
 
 .form-group {
-    margin-bottom: 1.25rem; 
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.5rem; 
-    font-weight: 600;
-    color: #343a40; 
+  display: block;
+  margin-bottom: .6rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
 }
 
 .form-group input[type='text'],
@@ -508,145 +583,50 @@ body {
 .form-group input[type='date'],
 .form-group textarea,
 .form-group select {
-    width: 100%; 
-    padding: 10px 12px;
-    border: 1px solid #ced4da; 
-    border-radius: 5px;
-    font-size: 1rem; 
-    color: #495057; 
-    box-sizing: border-box; 
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #495057;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
-.form-group input[type='text']:focus,
-.form-group input[type='number']:focus,
-.form-group input[type='date']:focus,
+.form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    outline: none;
-    border-color: rgb(100, 100, 220); 
-    box-shadow: 0 0 0 3px rgba(100, 100, 220, 0.25); 
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-.create-lot-section button[type="submit"] { 
-    background-color: rgb(80, 80, 200); 
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s ease;
-    width: 100%; 
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
 }
 
-.create-lot-section button[type="submit"]:hover {
-    background-color: #4a4ccc; 
+
+.button.create-button {
+  color: #fff;
+  background-color: #0069d9;
+  border-color: #0062cc;
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s ease;
+}
+.button.create-button:hover:not(:disabled) {
+  background-color: #005cbf;
+  border-color: #0056b3;
 }
 
-.create-lot-section button[type="submit"]:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
+.button.create-button:disabled {
+  background-color: #5a6268;
+  border-color: #545b62;
+  cursor: not-allowed;
+  opacity: 0.65;
 }
-
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ffffff; 
-    padding: 15px 30px; 
-    border-bottom: 1px solid #dee2e6; 
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-}
-
-a.logo {
-    text-decoration: none;
-    color: navy;
-    display: inline-block;
-}
-
-a.logo:hover {
-    color: #0000b3;
-}
-
-.logo {
-    
-    font-size: 2rem; 
-    font-weight: bold;
-}
-
-.profile a { 
-    text-decoration: none;
-    font-weight: bold;
-    margin-left: 15px; 
-    color: navy;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-.profile a:hover {
-    background-color: #f0f0f0;
-    color: #000080;
-}
-.profile button { 
-    margin-left: 15px;
-    background-color: transparent;
-    color: navy;
-    border: 1px solid navy;
-    
-}
-.profile button:hover {
-    background-color: navy;
-    color: white;
-}
-
-.modal {
-    display: none; 
-    position: fixed;
-    z-index: 1050; 
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); 
-    overflow-y: auto; 
-    display: flex; 
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background-color: white;
-    padding: 25px 30px;
-    border-radius: 8px;
-    width: auto; 
-    min-width: 300px; 
-    max-width: 600px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    position: relative; 
-    
-    
-}
-
-.close-modal {
-    position: absolute; 
-    top: 10px;
-    right: 15px;
-    font-size: 1.8rem; 
-    font-weight: bold;
-    color: #aaa; 
-    cursor: pointer;
-    line-height: 1;
-}
-
-.close-modal:hover,
-.close-modal:focus {
-    color: #333; 
-    text-decoration: none;
-}
-
-body.modal-open { 
-    overflow: hidden;
-}
-
 </style>
