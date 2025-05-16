@@ -1,12 +1,10 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter } from 'vue-router'; 
 import { useUserStore } from '@/stores/userStore';
 
-const router = useRouter();
+const router = useRouter(); 
 const userStore = useUserStore();
-
-userStore.clearUser();
 
 const form = ref({
     fname: '',
@@ -16,8 +14,7 @@ const errors = ref([]);
 
 async function login(e) {
     e.preventDefault();
-    localStorage.removeItem('user');
-    errors.value = [];
+    errors.value = []; 
 
     if (!form.value.fname) {
         errors.value.push("Ім'я є обов'язковим");
@@ -34,26 +31,35 @@ async function login(e) {
                 'Content-Type': 'application/json; charset=UTF-8',
             },
             body: JSON.stringify(form.value),
+            credentials: 'include' 
         });
 
-        if (res.ok) {
+        if (res.ok) { 
             const data = await res.json();
-            if (data.user) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                userStore.setUser(data.user);
+            if (data.user) { 
+                localStorage.setItem('user', JSON.stringify(data.user)); 
+                userStore.setUser(data.user); 
                 router.push('/users/profile');
             } else {
-                errors.value.push('Неправильні дані для входу');
+
+                errors.value.push('Не вдалося отримати дані користувача з відповіді сервера.');
             }
-        } else {
-            const errorData = await res.json();
-            errors.value.push(
-                errorData.message || 'Неправильні дані для входу'
-            );
+        } else { 
+            let errorMsg = 'Неправильні дані для входу'; 
+            try {
+                const errorData = await res.json();
+
+                errorMsg = errorData.error || errorData.message || errorMsg;
+            } catch (parseError) {
+
+                console.error('Помилка розбору JSON відповіді помилки (вхід):', parseError);
+                errorMsg = `Помилка сервера: ${res.status} ${res.statusText}`;
+            }
+            errors.value.push(errorMsg);
         }
     } catch (error) {
-        console.error('Помилка входу:', error);
-        errors.value.push('Помилка сервера. Спробуйте пізніше.');
+        console.error('Помилка з\'єднання або запиту (вхід):', error);
+        errors.value.push('Помилка з\'єднання з сервером. Спробуйте пізніше.');
     }
 }
 </script>

@@ -1,19 +1,23 @@
 <script setup>
-import router from '@/router';
-import { reactive } from 'vue';
+import { ref } from 'vue'; 
+import { reactive } from 'vue'; 
+import { useRouter } from 'vue-router'; 
 import { useUserStore } from '@/stores/userStore';
 
+const router = useRouter(); 
 const userStore = useUserStore();
-userStore.clearUser();
 
-const currentUser = reactive({
+const currentUser = reactive({ 
     password: '',
     fname: '',
     sname: '',
 });
 
+const registrationErrors = ref([]);
+
 const handleSubmit = async (event) => {
     event.preventDefault();
+    registrationErrors.value = []; 
 
     try {
         const res = await fetch('http://localhost:3000/users/signUp', {
@@ -26,24 +30,36 @@ const handleSubmit = async (event) => {
                 sname: currentUser.sname,
                 password: currentUser.password,
             }),
+            credentials: 'include' 
         });
 
-        if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem('user', JSON.stringify(data));
-            userStore.setUser({
-                userId: data.user.id,
-                fname: data.user.fname,
-                sname: data.user.sname,
-                lots: data.user.lots,
-            });
-            router.push('/users/profile');
-        } else {
-            const errorData = await res.json();
-            console.error('An error occurred during registration:', errorData);
+        if (res.ok) { 
+            const data = await res.json(); 
+            if (data.user) { 
+                localStorage.setItem('user', JSON.stringify(data.user)); 
+                userStore.setUser(data.user); 
+                router.push('/users/profile');
+            } else {
+
+                registrationErrors.value.push('Не вдалося отримати дані користувача після реєстрації.');
+                console.error('An error occurred during registration: No user data in response', data);
+            }
+        } else { 
+            let errorMsg = 'Помилка під час реєстрації';
+            try {
+                const errorData = await res.json();
+                errorMsg = errorData.error || errorData.message || errorMsg;
+            } catch (parseError) {
+                console.error('Помилка розбору JSON відповіді помилки (реєстрація):', parseError);
+                errorMsg = `Помилка сервера: ${res.status} ${res.statusText}`;
+            }
+            registrationErrors.value.push(errorMsg);
+            console.error('An error occurred during registration:', errorMsg);
+
         }
     } catch (error) {
-        console.error('Error sending request:', error);
+        console.error('Error sending request (signUp):', error);
+        registrationErrors.value.push('Помилка з\'єднання з сервером при реєстрації.');
     }
 };
 </script>
