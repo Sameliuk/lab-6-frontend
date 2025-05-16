@@ -1,67 +1,68 @@
-// src/view/HomeView.vue
 <script>
 export default {
     data() {
         return {
             searchQuery: '',
             lots: [],
-            activeLots: [], // Цей масив буде містити тільки активні лоти для відображення
+            activeLots: [],
             currentPage: 1,
-            pageSize: 10, // Це значення не використовується в поточній логіці fetch, але може бути корисним
+            pageSize: 10, // Можна буде використовувати, якщо API підтримує &pageSize=
             totalPages: 1,
             startTime: '',
             endTime: '',
             applyFilter: false,
-            isLoading: true, // Додамо стан завантаження
-            error: null,     // Додамо стан для помилок
+            isLoading: true,
+            error: null,
         };
     },
     created() {
-        this.fetchAllLots();
+        this.fetchAllLots(); // Завантажуємо початковий список лотів
     },
     methods: {
-        async fetchAllLots() {
+        async fetchAllLots() { // Додамо прапорець, щоб знати, чи це пошук/фільтр
             this.isLoading = true;
             this.error = null;
             try {
                 let url = `http://localhost:3000/lots?page=${this.currentPage}`;
-                if (this.applyFilter) {
+                // Додаємо pageSize до URL, якщо ваш API це підтримує
+                // url += `&pageSize=${this.pageSize}`;
+
+                if (this.applyFilter) { // Фільтри дати застосовуються тільки якщо applyFilter true
                     if (this.startTime) {
-                        const formattedStartTime = new Date(
-                            this.startTime
-                        ).toISOString();
+                        const formattedStartTime = new Date(this.startTime).toISOString();
                         url += `&startTime=${formattedStartTime}`;
                     }
                     if (this.endTime) {
-                        const formattedEndTime = new Date(
-                            this.endTime
-                        ).toISOString();
+                        const formattedEndTime = new Date(this.endTime).toISOString();
                         url += `&endTime=${formattedEndTime}`;
                     }
                 }
-<<<<<<< HEAD
-                if (this.searchQuery.trim()) {
-                    url += `&search=${encodeURIComponent(this.searchQuery.trim())}`;
-                }
-=======
->>>>>>> 605ad20 (search)
+                // Пошуковий запит додається до URL, тільки якщо це не результат окремого POST /search
+                // Або, якщо ваш GET /lots підтримує &search=, тоді цей блок можна залишити.
+                // Наразі, припускаючи що пошук йде через окремий POST, цей блок не потрібен для fetchAllLots.
+                // if (!isSearchOrFilter && this.searchQuery.trim()) {
+                // url += `&search=${encodeURIComponent(this.searchQuery.trim())}`;
+                // }
+
+
+                console.log('Запит на URL (fetchAllLots):', url);
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`Помилка отримання лотів: ${response.statusText}`);
+                if (!response.ok) throw new Error(`Помилка отримання лотів: ${response.status} ${response.statusText}`);
                 const data = await response.json();
 
-                // Перевіряємо структуру даних, що повертаються
                 if (data && Array.isArray(data.data)) {
-                    this.lots = data.data; // Зберігаємо всі лоти (активні та неактивні)
-                    this.activeLots = this.lots.filter((lot) => lot.status); // Фільтруємо тільки активні для відображення
+                    this.lots = data.data;
+                    this.activeLots = this.lots.filter((lot) => lot.status);
                     this.totalPages = data.pagination?.totalPages || 1;
                     this.currentPage = data.pagination?.currentPage || 1;
-                } else if (Array.isArray(data)) { // Якщо API повертає просто масив лотів
+                } else if (Array.isArray(data)) {
                      this.lots = data;
                      this.activeLots = this.lots.filter((lot) => lot.status);
-                     this.totalPages = 1; // Або логіка пагінації має бути іншою
-                     this.currentPage = 1;
+                     // Якщо пагінація не приходить з data.pagination, встановлюємо її за замовчуванням
+                     this.totalPages = data.pagination?.totalPages || Math.ceil(data.length / this.pageSize) || 1;
+                     this.currentPage = data.pagination?.currentPage || 1;
                 } else {
-                    console.error("Неочікуваний формат даних від API:", data);
+                    console.error("Неочікуваний формат даних від API (fetchAllLots):", data);
                     this.lots = [];
                     this.activeLots = [];
                     this.totalPages = 1;
@@ -69,63 +70,96 @@ export default {
                     throw new Error("Некоректний формат даних лотів від сервера.");
                 }
             } catch (error) {
-                console.error('Помилка при завантаженні лотів:', error);
+                console.error('Помилка при завантаженні лотів (fetchAllLots):', error);
                 this.error = error.message;
-                // alert('Помилка при завантаженні лотів.'); // Можна замінити на відображення this.error в шаблоні
             } finally {
                 this.isLoading = false;
             }
         },
-        async performSearch() {
-<<<<<<< HEAD
-            // Скидання на першу сторінку перед новим пошуком/фільтрацією
-            this.currentPage = 1;
-            this.fetchAllLots();
-=======
-            if (!this.searchQuery.trim()) {
-                this.fetchAllLots();
+
+        // src/view/HomeView.vue -> methods -> performSearch
+async performSearch() {
+    this.isLoading = true;
+    this.error = null;
+    if (!this.searchQuery.trim()) {
+        this.currentPage = 1;
+        this.fetchAllLots(true); // Показуємо всі лоти, якщо пошук порожній
+        return;
+    }
+
+    try {
+        // Формуємо URL з query-параметром title
+        const searchUrl = `http://localhost:3000/lots/search?title=${encodeURIComponent(this.searchQuery.trim())}`;
+        console.log('Запит на URL (performSearch - GET):', searchUrl);
+
+        const response = await fetch(searchUrl, {
+            method: 'GET' // Метод GET
+            // Для GET запитів тіло (body) та Content-Type не потрібні і спричиняють помилку
+            // headers: { 'Content-Type': 'application/json' }, <--- ВИДАЛИТИ АБО ЗАКОМЕНТУВАТИ
+            // body: JSON.stringify({ title: this.searchQuery.trim() }), <--- ВИДАЛИТИ АБО ЗАКОМЕНТУВАТИ
+        });
+
+        if (!response.ok) {
+            let errorMsg = 'Помилка пошуку';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorData.message || errorMsg;
+            } catch (e) { /* ігнор, якщо відповідь не JSON */ }
+
+            if (response.status === 404) {
+                this.lots = [];
+                this.activeLots = [];
+                this.totalPages = 0;
+                this.currentPage = 1;
+                // Можна встановити повідомлення для користувача, що нічого не знайдено, замість alert
+                this.error = 'Лоти за вашим запитом не знайдено.'; // Встановлюємо помилку для відображення в шаблоні
+                this.isLoading = false;
                 return;
             }
-            try {
-                const response = await fetch(
-                    'http://localhost:3000/lots/search',
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ title: this.searchQuery }),
-                    }
-                );
-                if (!response.ok) throw new Error('Помилка пошуку');
-                const data = await response.json();
-                this.lots = Array.isArray(data) ? data : data.data;
-                this.activeLots = Array.isArray(data)
-                    ? data.filter((lot) => lot.status)
-                    : data.data.filter((lot) => lot.status);
+            throw new Error(errorMsg);
+        }
+        const data = await response.json();
 
-                this.totalPages = 1;
-                this.currentPage = 1;
+        if (Array.isArray(data)) {
+            this.lots = data;
+            this.activeLots = this.lots.filter((lot) => lot.status);
+        } else {
+            console.error("Неочікуваний формат даних від API (performSearch):", data);
+            this.lots = [];
+            this.activeLots = [];
+             // Якщо пошук повертає дані з пагінацією, потрібно обробити data.pagination
+            this.totalPages = (data && data.pagination && data.pagination.totalPages) ? data.pagination.totalPages : 1;
+            this.currentPage = (data && data.pagination && data.pagination.currentPage) ? data.pagination.currentPage : 1;
+        }
+         // Якщо пошук не передбачає пагінацію і повертає всі результати, то:
+         // this.totalPages = 1;
+         // this.currentPage = 1;
 
-                if (this.activeLots.length === 0) {
-                    alert('Лоти не знайдено.');
-                }
-            } catch (error) {
-                alert('Помилка при виконанні пошуку. Спробуйте пізніше.');
-            }
->>>>>>> 605ad20 (search)
-        },
+    } catch (error) {
+        console.error('Помилка при виконанні пошуку (performSearch):', error);
+        this.error = error.message;
+    } finally {
+        this.isLoading = false;
+    }
+    },
+
         changePage(page) {
             if (page > 0 && page <= this.totalPages && page !== this.currentPage) {
                 this.currentPage = page;
+                // Якщо був активний пошуковий запит, то пагінація має працювати в контексті результатів пошуку.
+                // Поточна логіка пошуку скидає пагінацію на 1. Якщо ваш POST /search підтримує пагінацію,
+                // тоді changePage має викликати performSearch з параметром page.
+                // Наразі, для простоти, припускаємо, що пагінація працює тільки для fetchAllLots.
                 this.fetchAllLots();
             }
         },
-        clearSearchAndFilters() { // Перейменовано для ясності
+        clearSearchAndFilters() {
             this.searchQuery = '';
             this.startTime = '';
             this.endTime = '';
             this.applyFilter = false;
             this.currentPage = 1;
-            this.fetchAllLots();
+            this.fetchAllLots(); // Завантажуємо всі лоти без фільтрів та пошуку
         },
         applyDateFilter() {
             if (
@@ -137,14 +171,17 @@ export default {
                 return;
             }
             this.applyFilter = !!(this.startTime || this.endTime);
-            this.performSearch(); // Викликаємо performSearch для скидання сторінки та оновлення
+            this.currentPage = 1; // Скидаємо на першу сторінку при застосуванні фільтра
+            this.fetchAllLots(true); // Викликаємо для оновлення з урахуванням фільтрів та скидання сторінки
         },
     },
 };
 </script>
 
 <template>
-    <div class="home-page-container"> <header class="controls-header"> <div class="filter-bar">
+    <div class="home-page-container">
+        <header class="controls-header">
+             <div class="filter-bar">
                 <input type="date" v-model="startTime" placeholder="Початок" />
                 <input type="date" v-model="endTime" placeholder="Кінець" />
                 <button @click="applyDateFilter">Фільтрувати за датою</button>
@@ -180,7 +217,7 @@ export default {
                         <div class="lot">
                             <div class="lot-image-container">
                                 <img
-                                    :src="lot.image || '/images/placeholder.jpg'" 
+                                    :src="lot.image || '/images/placeholder.jpg'"
                                     :alt="lot.title"
                                     class="lot-image"
                                 />
@@ -189,11 +226,10 @@ export default {
                             <p class="desc">{{ lot.description }}</p>
                             <p class="price">Початкова ціна: {{ lot.start_price }} ₴</p>
                             <p class="price"><strong>Поточна ціна: {{ lot.current_price }} ₴</strong></p>
-                            </div>
+                        </div>
                     </router-link>
                 </div>
-                <div class="pagination" v-if="totalPages > 1">
-                    <button
+                <div class="pagination" v-if="totalPages > 1 && !searchQuery.trim()"> <button
                         @click="changePage(currentPage - 1)"
                         :disabled="currentPage === 1"
                     >
@@ -335,7 +371,6 @@ export default {
     flex-grow: 1; /* Щоб опис розтягувався, якщо картки різної висоти */
     margin-bottom: 10px;
     line-height: 1.5;
-    /* Обмеження тексту опису */
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
