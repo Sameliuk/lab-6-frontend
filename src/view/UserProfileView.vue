@@ -1,4 +1,3 @@
-// src/view/UserProfileView.vue
 <template>
   <div class="user-profile-page">
     <div class="container">
@@ -132,10 +131,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useUserStore } from '@/stores/userStore';
-// import { useRouter } from 'vue-router'; // Розкоментуйте, якщо потрібен router
+// import { useRouter } from 'vue-router'; 
 
 const userStore = useUserStore();
-// const router = useRouter(); // Розкоментуйте, якщо потрібен router
+// const router = useRouter(); 
 
 const lots = ref([]);
 const error = ref(null);
@@ -149,7 +148,7 @@ const newLot = ref({
   startPrice: null,
   startTime: getTodayDate(),
   endTime: getTomorrowDate(),
-  status: 'true', // Залишаємо як рядок для узгодженості з <option value="true">
+  status: 'true',
   image: ''
 });
 
@@ -297,21 +296,16 @@ async function handleCreateLot() {
   isCreatingLot.value = true;
 
   const payload = {
-    userId: userStore.userId, // Це поле використовується бекендом для визначення user_id
+    userId: userStore.userId, 
     title: newLot.value.title.trim(),
     description: newLot.value.description.trim(),
-    // --- ЗМІНЮЄМО НАЗВИ ПОЛІВ НА CAMELCASE, щоб відповідати деструктуризації в контролері ---
-    startPrice: parseFloat(newLot.value.startPrice),   // Було start_price
-    // current_price: parseFloat(newLot.value.startPrice), // Бекенд сам встановить current_price = startPrice
-    status: newLot.value.status, // Це буде рядок "true" або "false"
-    startTime: newLot.value.startTime,    // Було start_time
-    endTime: newLot.value.endTime,      // Було end_time
+    startPrice: parseFloat(newLot.value.startPrice),   
+    // current_price: parseFloat(newLot.value.startPrice), 
+    status: newLot.value.status,
+    startTime: newLot.value.startTime,    
+    endTime: newLot.value.endTime,     
     image: newLot.value.image ? newLot.value.image.trim() : null
   };
-  // Поле current_price зазвичай встановлюється на бекенді рівним startPrice при створенні,
-  // тому його можна не надсилати з фронтенду, якщо бекенд це робить.
-  // Якщо бекенд очікує current_price, то:
-  // payload.currentPrice = parseFloat(newLot.value.startPrice);
 
   console.log("[UserProfileView] Дані для створення лоту (payload, оновлено для бекенду):", JSON.stringify(payload, null, 2));
 
@@ -434,7 +428,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Ваші стилі залишаються тут */
 .user-profile-page {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;

@@ -1,5 +1,3 @@
-<!-- UserOffersGleb branch -->
-
 <template>
   <div>
     <main>
@@ -131,9 +129,9 @@ const formattedCurrentPrice = computed(() => {
 
 const minBidAmount = computed(() => {
     if (currentLotPrice.value > 0) {
-        return currentLotPrice.value + 1; // Мінімальний крок ставки - 1 грн
+        return currentLotPrice.value + 1; 
     }
-    return 1; // Якщо ціна 0, мінімальна ставка 1 грн
+    return 1;
 });
 
 async function fetchLotDetails() {
@@ -158,13 +156,13 @@ async function fetchLotDetails() {
             try {
                 const errorData = await response.json();
                 errorMsg = errorData.error || errorData.message || errorMsg;
-            } catch (e) { /* Залишаємо errorMsg як є, якщо відповідь не JSON */ }
+            } catch (e) { }
             throw new Error(errorMsg);
         }
         const dataFromServer = await response.json();
-        if (dataFromServer && dataFromServer.lot) { // Перевіряємо, чи є об'єкт lot
+        if (dataFromServer && dataFromServer.lot) {
             lotData.value = dataFromServer;
-            if (dataFromServer.lot) { // Встановлюємо початкову суму ставки
+            if (dataFromServer.lot) { 
                 bidAmount.value = minBidAmount.value;
             }
             console.log('[LotView] Дані лоту успішно завантажено:', lotData.value);
@@ -175,7 +173,7 @@ async function fetchLotDetails() {
     } catch (err) {
         console.error('[LotView] Помилка при завантаженні деталей лоту:', err);
         error.value = err.message;
-        lotData.value = null; // Очищаємо дані лоту у разі помилки
+        lotData.value = null; 
     } finally {
         isLoading.value = false;
     }
@@ -194,7 +192,7 @@ function decrementBidAmount() {
 }
 
 async function handlePlaceBid() {
-    if (!userStore.isLoggedIn) { // Використовуємо getter isLoggedIn
+    if (!userStore.isLoggedIn) { 
         bidError.value = "Будь ласка, увійдіть, щоб зробити ставку.";
         router.push({ name: 'signIn', query: { redirect: route.fullPath } });
         return;
@@ -235,8 +233,8 @@ async function handlePlaceBid() {
 
         console.log('[LotView] Ставку успішно зроблено:', responseData);
         alert('Вашу ставку успішно прийнято!');
-        await fetchLotDetails(); // Оновлюємо дані лоту
-        // bidAmount.value = minBidAmount.value; // Оновлюємо поле вводу ставки до нового мінімуму
+        await fetchLotDetails(); 
+        // bidAmount.value = minBidAmount.value; 
 
     } catch (err) {
         console.error('[LotView] Помилка під час створення ставки:', err);
